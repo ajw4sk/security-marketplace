@@ -1064,9 +1064,12 @@ function parseArgs(argv) {
         process.exit(2);
     }
   }
-  // Env-var fallbacks (CLI > env > built-in). The .claude/sec-policy-analyzer-node.local.md
-  // settings file is read by scripts/run.sh and exported as SEC_POLICY_* env
-  // vars before this parser is invoked, so this single layer covers both.
+  // Env-var fallbacks (CLI > env > built-in default). When invoked via
+  // scripts/run.sh, run.sh reads .claude/sec-policy-analyzer-node.local.md and
+  // INJECTS the corresponding CLI flags directly — it does not export env
+  // vars. Direct invocations of this script that need to honor the local
+  // config file should either go through run.sh or set SEC_POLICY_DEFAULT_*
+  // themselves. CLI flags always win regardless of how this script is run.
   const envBool = (v) => /^(1|true|yes|on)$/i.test(String(v || ''));
   if (!args.controls  && process.env.SEC_POLICY_DEFAULT_CONTROLS)  args.controls  = process.env.SEC_POLICY_DEFAULT_CONTROLS;
   if (!args.framework && process.env.SEC_POLICY_DEFAULT_FRAMEWORK) args.framework = process.env.SEC_POLICY_DEFAULT_FRAMEWORK;

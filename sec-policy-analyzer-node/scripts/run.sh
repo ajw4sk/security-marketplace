@@ -84,17 +84,23 @@ inject_defaults() {
   args=()
   [ "$#" -gt 0 ] && args=("$@")
 
-  has_flag() {
-    local f="$1"
+  # has_any_flag <flag1> [flag2 ...] — true if any of the supplied flags are
+  # present in args. Treats long and short forms as equivalent (e.g.
+  # --controls and -c are the same logical setting).
+  has_any_flag() {
     [ "${#args[@]}" -eq 0 ] && return 1
-    for a in "${args[@]}"; do
-      [ "$a" = "$f" ] && return 0
+    local f
+    for f in "$@"; do
+      local a
+      for a in "${args[@]}"; do
+        [ "$a" = "$f" ] && return 0
+      done
     done
     return 1
   }
 
-  # --controls
-  if ! has_flag --controls; then
+  # --controls / -c
+  if ! has_any_flag --controls -c; then
     local v
     v="$(resolved SEC_POLICY_DEFAULT_CONTROLS default-controls "")"
     if [ -n "$v" ] && [ -e "$v" ]; then
@@ -102,21 +108,20 @@ inject_defaults() {
     fi
   fi
   # --framework
-  if ! has_flag --framework; then
+  if ! has_any_flag --framework; then
     local v
     v="$(resolved SEC_POLICY_DEFAULT_FRAMEWORK default-framework "")"
     [ -n "$v" ] && args+=(--framework "$v")
   fi
-  # --csv-output (only if user passed --csv shorthand or default-csv true)
-  # NOTE: parser uses --csv-output PATH directly. If user passed --csv WITHOUT
-  # PATH, we treat it as "emit a sibling .csv next to the docx" — handled
-  # outside in the parse subcommand.
   # --policy-map
-  if ! has_flag --policy-map; then
+  if ! has_any_flag --policy-map; then
     local v
     v="$(resolved SEC_POLICY_DEFAULT_POLICY_MAP default-policy-map "false")"
     [ "$v" = "true" ] && args+=(--policy-map)
   fi
+  # NOTE: --csv-output is NOT injected here. The "default-csv" / SEC_POLICY_DEFAULT_CSV
+  # setting is honored in cmd_parse, which knows the docx path needed to derive
+  # the sibling .csv path; inject_defaults runs without that context.
   if [ "${#args[@]}" -gt 0 ]; then
     printf '%s\n' "${args[@]}"
   fi
@@ -130,28 +135,46 @@ cmd_parse() {
     echo "usage: run.sh parse <docx> [parser-flags ...]" >&2
     exit 2
   fi
+  if [ ! -f "$docx" ]; then
+    echo "ERROR: docx not found: $docx" >&2
+    exit 2
+  fi
   local docx_dir docx_stem
-  docx_dir="$(cd "$(dirname "$docx")" && pwd)"
+  docx_dir="$(cd "$(dirname "$docx")" 2>/dev/null && pwd)" || {
+    echo "ERROR: cannot resolve directory of: $docx" >&2; exit 2; }
   docx_stem="$(basename "$docx" .docx)"
 
-  # --csv shorthand (no path) → derive sibling path
+  # --csv shorthand (no path) → derive sibling path. Also honors default-csv:true
+  # from .local.md / SEC_POLICY_DEFAULT_CSV when the user did not pass --csv or
+  # --csv-output explicitly.
   local extra=()
   local cleaned=()
+  local saw_csv=0
+  local saw_csv_output=0
   if [ "$#" -gt 0 ]; then
     for a in "$@"; do
-      if [ "$a" = "--csv" ]; then
-        extra+=(--csv-output "${docx_dir}/${docx_stem}.csv")
-      else
-        cleaned+=("$a")
-      fi
+      case "$a" in
+        --csv)         saw_csv=1 ;;
+        --csv-output)  saw_csv_output=1; cleaned+=("$a") ;;
+        *)             cleaned+=("$a") ;;
+      esac
     done
   fi
+  if [ "$saw_csv" -eq 1 ] && [ "$saw_csv_output" -eq 0 ]; then
+    extra+=(--csv-output "${docx_dir}/${docx_stem}.csv")
+  elif [ "$saw_csv_output" -eq 0 ]; then
+    local default_csv
+    default_csv="$(resolved SEC_POLICY_DEFAULT_CSV default-csv "false")"
+    if [ "$default_csv" = "true" ]; then
+      extra+=(--csv-output "${docx_dir}/${docx_stem}.csv")
+    fi
+  fi
 
-  # Choose output mode (only if neither --output-dir nor --test-output-dir given)
+  # Choose output mode (only if neither long nor short output-dir flag given)
   local has_out=0
   if [ "${#cleaned[@]}" -gt 0 ]; then
     for a in "${cleaned[@]}"; do
-      case "$a" in --output-dir|--test-output-dir) has_out=1;; esac
+      case "$a" in --output-dir|-o|--test-output-dir|-t) has_out=1;; esac
     done
   fi
   if [ "$has_out" -eq 0 ]; then

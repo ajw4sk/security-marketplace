@@ -9,21 +9,19 @@ Bulk-run the bundled v2 parser against every `.docx` in a target directory. Alwa
 
 ## Behavior
 
-1. Verify the env. If `${CLAUDE_PLUGIN_ROOT}/scripts/.state/node-bin` is missing, advise the user to run `/sec-policy-setup` first and stop.
-
-2. Resolve the target directory:
+1. Resolve the target directory:
    - If `$1` is provided and is a directory, use it.
    - Otherwise default to `$PWD`.
 
-3. Run the parse-all subcommand:
+2. Run the parse-all subcommand:
 
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/run.sh" parse-all "$TARGET_DIR" "$@"
    ```
 
-   The wrapper globs `*.docx` (skipping `~$*` Word lock files) and runs `parse` on each, applying the standard resolution chain (CLI > env > `.local.md` > built-in default) per docx.
+   The wrapper globs `*.docx` (skipping `~$*` Word lock files) and runs `parse` on each, applying the standard resolution chain (CLI > env > `.local.md` > built-in default) per docx. If `node` cannot be resolved, the wrapper errors with the install hint — at which point run `/sec-policy-setup`.
 
-4. Surface the wrapper's per-docx success/fail summary verbatim. Continue past failures by default; only stop early if the user explicitly requested fail-fast.
+3. Surface the wrapper's per-docx success/fail summary verbatim. The wrapper continues through every docx regardless of individual failures and reports the final tally (`N ok / M failed / T total`); a non-zero exit signals at least one failure.
 
 ## Examples
 
