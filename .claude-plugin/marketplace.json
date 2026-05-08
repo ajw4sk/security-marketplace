@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/claude-marketplace.json",
+  "name": "security-marketplace",
+  "displayName": "Security Marketplace",
+  "owner": {
+    "name": "ajw4sk",
+    "url": "https://github.com/ajw4sk"
+  },
+  "description": "Claude Code plugins for security/compliance work — currently the Sec Policy Analyzer (Node) for parsing policy .docx into structured v2 JSON.",
+  "plugins": [
+    {
+      "name": "sec-policy-analyzer-node",
+      "source": "./sec-policy-analyzer-node",
+      "version": "0.1.0",
+      "description": "Parse security/compliance policy .docx (NIST, ISO 27001, SOC 2, PCI DSS, …) into the v2 structured JSON schema with full-ancestor IDs, framework-aware policy-id, scopes/assets/linkage fields, an assignment-selectors index, and optional flat CSV. Node + adm-zip + fast-xml-parser; no Python required.",
+      "keywords": [
+        "policy",
+        "parsing",
+        "compliance",
+        "security",
+        "nist",
+        "iso-27001",
+        "soc-2",
+        "pci-dss"
+      ]
+    }
+  ]
+}

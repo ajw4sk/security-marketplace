@@ -1,0 +1,12 @@
+.DS_Store
+node_modules/
+*.log
+
+# Plugin runtime state — created by the doctor at install time
+sec-policy-analyzer-node/scripts/.state/
+
+# Test outputs
+*.csv
+*_only.json
+*_associated_controls.json
+*_complete_associations.json

@@ -1,0 +1,20 @@
+{
+  "name": "sec-policy-analyzer-node-scripts",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Bundled parser for the sec-policy-analyzer-node plugin. Reads .docx via adm-zip + fast-xml-parser and emits v2 policy JSON / CSV.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "parse-policy-v2": "./parse_policy_v2.mjs"
+  },
+  "scripts": {
+    "doctor": "bash sec-policy-doctor.sh"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "fast-xml-parser": "^4.5.0"
+  }
+}
