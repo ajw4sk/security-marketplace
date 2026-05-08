@@ -1,61 +1,42 @@
 ---
-description: Parse a single security/compliance policy .docx into v2 JSON (and optional CSV) using the bundled Node parser
+description: Parse a single security/compliance policy .docx into v2 JSON (and optional CSV) via the bundled Node parser wrapper
 argument-hint: <path-to-docx> [--policy-id <slug>] [--framework <tags>] [--csv] [--policy-map]
 ---
 
 # /parse-policy-v2
 
-Run the bundled Node parser at `${CLAUDE_PLUGIN_ROOT}/scripts/parse_policy_v2.mjs` against a single policy `.docx` in **test mode** — outputs land flat in the same directory as the docx and no production directories are touched.
+Parse a single policy `.docx` in **test mode** — outputs land flat next to the docx, no production directories touched. Always invokes the parser via `${CLAUDE_PLUGIN_ROOT}/scripts/run.sh`, which handles node-binary resolution, env-var fallbacks, and per-project `.claude/sec-policy-analyzer-node.local.md` config in one place.
 
 ## Behavior
 
-When invoked, follow the `policy-parsing-v2` skill:
+1. Verify the env. If `${CLAUDE_PLUGIN_ROOT}/scripts/.state/node-bin` is missing, advise the user to run `/sec-policy-setup` first and stop.
 
-1. Resolve the node binary in this priority order:
-   1. `${CLAUDE_PLUGIN_ROOT}/scripts/.state/node-bin` (written by `/sec-policy-setup`).
-   2. `$SEC_POLICY_NODE` env var.
-   3. The first `node` on `$PATH`.
+2. Resolve `$1` (the docx path). If `$1` is missing or doesn't exist, ask the user for it.
 
-   If none are found, surface `/sec-policy-setup`'s install hint and stop.
+3. Forward all flags from `$@` verbatim to `run.sh`. The wrapper does the rest:
+   - `--csv` (no path) expands to `--csv-output <docx-dir>/<docx-stem>.csv`.
+   - If neither `--output-dir` nor `--test-output-dir` is passed, the wrapper picks based on `default-output-mode` (config-file / `SEC_POLICY_DEFAULT_OUTPUT_MODE` env var) — defaulting to test mode pointed at the docx's parent dir.
+   - `--policy-id`, `--framework`, `--policy-map`, `--verbose` pass through unchanged.
 
-2. Confirm the deps declared in `${CLAUDE_PLUGIN_ROOT}/scripts/package.json` resolve. A quick gate:
-
-   ```bash
-   "${NODE}" -e "require('adm-zip');require('fast-xml-parser')" 2>/dev/null \
-     || { echo "Run /sec-policy-setup or: cd \"${CLAUDE_PLUGIN_ROOT}/scripts\" && npm install"; exit 2; }
-   ```
-
-3. Resolve `$1` (the docx path). If `$1` is missing or does not exist, ask the user for it.
-
-4. Detect the docx's parent directory and use it as `--test-output-dir`.
-
-5. If `--csv` is present in the args, also pass `--csv-output <parent-dir>/<docx-stem>.csv`.
-
-6. Forward `--policy-id`, `--framework`, and `--policy-map` flags from the args verbatim.
-
-7. If a `controls/controls.csv` exists relative to the cwd, pass `--controls controls/controls.csv`; otherwise omit the flag (the parser handles its absence cleanly).
-
-8. Run the parser:
+4. Run the parser:
 
    ```bash
-   "${NODE}" "${CLAUDE_PLUGIN_ROOT}/scripts/parse_policy_v2.mjs" \
-     --docx "$DOCX" \
-     [--controls controls/controls.csv] \
-     --test-output-dir "$DOCX_DIR" \
-     [--csv-output "$DOCX_DIR/$STEM.csv"] \
-     [--policy-id "$POLICY_ID"] \
-     [--framework "$FRAMEWORK"] \
-     [--policy-map] \
-     --verbose
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/run.sh" parse "$DOCX" "$@"
    ```
 
-9. Spot-check the resulting `*_only.json`:
-   - Confirm `policy-id`, `policy-id-source`, and `framework-tags` are sensible.
-   - Confirm `policy.policy-requirements` opens with `<policy-id>-polcsec-1` … `<policy-id>-polcsec-7`.
-   - Confirm at least one numbered section beyond `polcsec-7` is present (when applicable).
-   - Confirm `assignment-selectors.by-section` has entries when the docx contains `[organization-defined …]` placeholders or curated inline patterns (`eight (8)`, `periodically`, …).
+5. Spot-check the resulting `*_only.json`:
+   - `policy-id`, `policy-id-source`, and `framework-tags` are sensible.
+   - `policy.policy-requirements` opens with `<policy-id>-polcsec-1` … `<policy-id>-polcsec-7`.
+   - At least one numbered section beyond `polcsec-7` is present (when applicable).
+   - `assignment-selectors.by-section` has entries when the docx contains `[organization-defined …]` placeholders or curated inline patterns.
 
-10. Report the path to each output file and the row count of the CSV (if requested).
+6. Report each output file path and the row count of the CSV (if `--csv` was passed).
+
+## Resolution priority for every setting
+
+CLI flag → `SEC_POLICY_DEFAULT_*` env var → `.claude/sec-policy-analyzer-node.local.md` frontmatter → built-in default.
+
+`run.sh` enforces this chain in actual shell — there's no "Claude reads markdown and approximates the chain" — so behavior is reproducible across sessions, repos, and machines.
 
 ## Examples
 
