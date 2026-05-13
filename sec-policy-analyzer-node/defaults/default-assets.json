@@ -1,0 +1,11 @@
+{
+  "$schema-note": "Master asset catalog. Per-statement asset references resolve against this catalog. Three buckets: personnel, infrastructure, applications. Applications split into developed (built in-house) and business (purchased/SaaS).",
+  "assets": {
+    "personnel": [],
+    "infrastructure": [],
+    "applications": {
+      "developed": [],
+      "business": []
+    }
+  }
+}

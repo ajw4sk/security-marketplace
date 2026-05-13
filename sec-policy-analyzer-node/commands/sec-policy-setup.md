@@ -37,6 +37,7 @@ If exit ≠ 0, **do not** install on the user's behalf:
 If exit = 0, confirm the plugin is ready and remind the user of:
 - `/parse-policy-v2 <docx> [--csv]` — single docx
 - `/parse-all-policies [<dir>] [--csv]` — bulk
+- `/map-policy-controls <policy.json>` — crosswalk a parsed policy to a controls catalog xlsx (NIST `Level 2` sheet)
 
 ## Optional: per-project config
 
@@ -45,7 +46,8 @@ Create `${CLAUDE_PROJECT_DIR}/.claude/sec-policy-analyzer-node.local.md` to set 
 ```markdown
 ---
 node-bin: /usr/local/bin/node                          # SEC_POLICY_NODE
-default-controls: ./controls/controls.csv              # SEC_POLICY_DEFAULT_CONTROLS
+default-controls: ./controls/controls.csv              # SEC_POLICY_DEFAULT_CONTROLS         (parser --controls CSV)
+default-controls-xlsx: ./NIST Controls and Procedures.xlsx  # SEC_POLICY_DEFAULT_CONTROLS_XLSX  (map-controls --controls xlsx)
 default-framework: iso-27001,soc-2                     # SEC_POLICY_DEFAULT_FRAMEWORK
 default-output-mode: test                              # SEC_POLICY_DEFAULT_OUTPUT_MODE  (test|production)
 default-test-output-dir: .                             # SEC_POLICY_DEFAULT_TEST_OUTPUT_DIR

@@ -1,0 +1,10 @@
+{
+  "$template-note": "Procedure skeleton. Shape TBD — to be refined when we walk the procedures schema section.",
+  "procedure-id": "PROC-001",
+  "linked-policy-id": "PLCY-001-NI100-001-01",
+  "linked-statement-reference-ids": [],
+  "title": "",
+  "owner": "",
+  "steps": [],
+  "evidence-task-ids": []
+}

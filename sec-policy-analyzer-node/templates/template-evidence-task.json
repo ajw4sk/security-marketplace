@@ -1,0 +1,13 @@
+{
+  "$template-note": "Evidence-task skeleton. Shape TBD — to be refined when we walk the evidence-tasks schema section.",
+  "evidence-task-id": "EVID-001",
+  "linked-policy-id": "PLCY-001-NI100-001-01",
+  "linked-statement-reference-ids": [],
+  "linked-procedure-ids": [],
+  "title": "",
+  "frequency": "",
+  "owner": "",
+  "due-rule": "",
+  "artifact-type": "",
+  "notes": ""
+}

@@ -1,0 +1,10 @@
+{
+  "$template-note": "Single in-house developed application. Add to default-assets.json's assets.applications.developed array.",
+  "asset-id": "APP-DEV-001",
+  "name": "",
+  "repository": "",
+  "tech-stack": [],
+  "owner-team": "",
+  "data-classification": "public | internal | confidential | restricted",
+  "notes": ""
+}

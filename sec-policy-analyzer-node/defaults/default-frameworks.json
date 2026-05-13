@@ -1,0 +1,29 @@
+{
+  "$schema-note": "Master framework registry. Keyed by framework code. Edit to add custom frameworks; the parser reads this file at startup.",
+  "frameworks": {
+    "NI100": { "tag": "nist-800-53",     "name": "NIST 800-53",        "edition": "Rev 5" },
+    "NI102": { "tag": "tx-ramp",         "name": "TX-RAMP",            "edition": null },
+    "NI105": { "tag": "nist-800-171",    "name": "NIST 800-171",       "edition": "Rev 3" },
+    "NI106": { "tag": "nist-800-172",    "name": "NIST 800-172",       "edition": null },
+    "NI107": { "tag": "nist-csf",        "name": "NIST CSF",           "edition": "1.1" },
+    "NI108": { "tag": "nist-csf-2",      "name": "NIST CSF",           "edition": "2.0" },
+    "NI110": { "tag": "nist-ai-rmf",     "name": "NIST AI RMF",        "edition": "1.0" },
+    "SO115": { "tag": "soc-2",           "name": "SOC 2",              "edition": "Type 2 (2017 TSC)" },
+    "IS120": { "tag": "iso-27001",       "name": "ISO 27001",          "edition": "2022" },
+    "IS121": { "tag": "iso-42001",       "name": "ISO 42001",          "edition": "2023" },
+    "CS130": { "tag": "csa-star",        "name": "CSA STAR",           "edition": null },
+    "CY140": { "tag": "cyber-essentials","name": "Cyber Essentials",   "edition": null },
+    "HI200": { "tag": "hipaa",           "name": "HIPAA",              "edition": null },
+    "FE210": { "tag": "ferpa",           "name": "FERPA",              "edition": null },
+    "GD250": { "tag": "gdpr",            "name": "GDPR",               "edition": null },
+    "PC280": { "tag": "pci-dss",         "name": "PCI DSS",            "edition": "4.0.1" },
+    "HE415": { "tag": "hecvat",          "name": "HECVAT",             "edition": "4.15" }
+  },
+  "multi-framework": {
+    "code-pattern": "MULT500-NN",
+    "description": "Used in policy-id when one policy covers multiple frameworks. The real frameworks are enumerated in the policy's framework-codes / framework-tags arrays.",
+    "registered": {
+      "MULT500-01": { "members": ["NI100", "SO115"], "notes": "Placeholder example — NIST 800-53 + SOC 2." }
+    }
+  }
+}

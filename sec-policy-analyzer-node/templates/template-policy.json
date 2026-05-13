@@ -1,0 +1,38 @@
+{
+  "$template-note": "Top-level policy skeleton. Matches the schema-cheatsheet shape; fill or remove sections as needed. The parser produces this same shape from a .docx.",
+  "schema-version": "v3",
+  "policy-id": "PLCY-001-NI100-001-01",
+  "policy-id-source": "manual",
+  "framework-tags": ["nist-800-53"],
+  "framework-codes": ["NI100"],
+  "frameworks": ["NIST 800-53 Rev 5"],
+  "category": "access-control",
+  "category-code": "AC",
+  "policy-tags": [],
+  "status": "draft",
+  "policy-title": "",
+  "toc": [],
+  "summary": "",
+  "policy": {
+    "introduction": "",
+    "purpose": "",
+    "scope": {
+      "scope-statement": "",
+      "scopes": [],
+      "products": [],
+      "regions": [],
+      "visibility": "internal"
+    },
+    "roles-and-responsibilities": {
+      "applicability": "",
+      "responsibilities": []
+    },
+    "management-commitment": "",
+    "authority": "",
+    "compliance": "",
+    "policy-requirements": [],
+    "policy-exceptions": []
+  },
+  "assignment-selectors": { "by-section": {} },
+  "policy-version-history": []
+}

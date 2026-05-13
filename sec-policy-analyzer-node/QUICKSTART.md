@@ -80,11 +80,36 @@ Outputs land **next to each input** (no production directories are touched):
 | `commands/parse-policy-v2.md` | `/parse-policy-v2` slash command |
 | `commands/parse-all-policies.md` | `/parse-all-policies` slash command |
 | `commands/sec-policy-setup.md` | `/sec-policy-setup` slash command |
+| `commands/map-policy-controls.md` | `/map-policy-controls` slash command (v0.3+) |
+| `skills/policy-controls-mapping/SKILL.md` | Auto-invoked when a parsed policy + controls xlsx are both present (v0.3+) |
 | `scripts/parse_policy_v2.mjs` | The bundled parser (Node ESM) |
+| `scripts/transform_to_v3.mjs` | v2 → v3 schema transform (compact ref-ids + condition framework-tags) |
+| `scripts/map_controls.mjs` | Policy → controls catalog crosswalk (v0.3+) |
+| `scripts/run.sh` | Unified entrypoint wrapper used by every slash command |
 | `scripts/package.json` | Runtime deps (`adm-zip`, `fast-xml-parser`) — single source of truth |
 | `scripts/package-lock.json` | Committed lockfile |
 | `scripts/sec-policy-doctor.sh` | Node env doctor |
 | `README.md` | Plugin overview |
+
+## Per-project config (optional)
+
+Create `${CLAUDE_PROJECT_DIR}/.claude/sec-policy-analyzer-node.local.md` to persist defaults across sessions. Any field can be overridden by a CLI flag or the matching `SEC_POLICY_DEFAULT_*` env var (resolution order: CLI > env > `.local.md` > built-in).
+
+```markdown
+---
+node-bin: /usr/local/bin/node                                # SEC_POLICY_NODE
+default-controls: ./controls/controls.csv                    # parser --controls CSV
+default-controls-xlsx: ./NIST Controls and Procedures.xlsx   # map-controls --controls xlsx
+default-framework: iso-27001,soc-2
+default-output-mode: test                                    # test|production
+default-test-output-dir: .
+default-output-dir: ./policies/.../json
+default-csv: true
+default-policy-map: false
+---
+```
+
+After editing the file, **restart Claude Code** for the new values to be picked up by hooks. Add `.claude/*.local.md` to your project's `.gitignore`.
 
 ## Dependencies
 

@@ -7,13 +7,17 @@ One-page reference for the JSON produced by `scripts/parse_policy_v2.mjs`. Outpu
 ```json
 {
   "schema-version": "v2",
-  "policy-id": "nist-access-control-2026",
+  "policy-id": "PLCY-001-NI100-001-01",
   "policy-id-source": "filename",
-  "framework-tags": ["nist"],
+  "framework-tags": ["nist-800-53"],
+  "framework-codes": ["NI100"],
+  "frameworks": ["NIST 800-53 Rev 5"],
+  "category": "access-control",
+  "category-code": "AC",
+  "policy-tags": [],
+  "status": "draft",                 /* enum: draft | review | published | approved | deprecated */
   "policy-map": { /* present only with --policy-map */ },
   "policy-title": "...",
-  "category": "...", "status": "draft|published|...",
-  "frameworks": ["..."],
   "toc": ["1.0 Purpose", "..."],
   "summary": "...",
   "policy": {
@@ -34,17 +38,17 @@ One-page reference for the JSON produced by `scripts/parse_policy_v2.mjs`. Outpu
 }
 ```
 
-## Default sections (always present, in this order)
+## Default sections (always present, start with a number, typically two formats, NIST format and other formats)
 
 | sect-id (suffix) | section-type |
 |---|---|
-| polcsec-1 | `purpose` |
-| polcsec-2 | `scope` |
-| polcsec-3 | `roles-and-responsibilities` |
-| polcsec-4 | `management-commitment` |
-| polcsec-5 | `coordination-among-organizational-entities` |
-| polcsec-6 | `compliance` |
-| polcsec-7 | `policy-and-procedures` |
+| SECT-01 | `purpose` |
+| SECT-02 | `scope` |
+| SECT-03 | `roles-and-responsibilities` |
+| SECT-04 | `management-commitment` |
+| SECT-05 | `coordination-among-organizational-entities` |
+| SECT-06 | `compliance` |
+| SECT-07 | `policy-and-procedures` |
 
 ## ID conventions
 
@@ -52,15 +56,15 @@ Every local id is short. Every non-top-level object also carries `reference-id` 
 
 | Entity | Local id | Reference-id |
 |---|---|---|
-| Policy (top-level) | `policy-id` | *(none)* |
-| Section | `sect-id`: `polcsec-7` | `<policy-id>-polcsec-7` |
-| Role | `role-id`: `polrole-1` | `<section-ref>-polrole-1` |
-| Responsibility | `resp-id`: `polresp-1` | *(same row as role)* |
-| Scope item | `scope-id`: `polscope-1` | `<section-ref>-polscope-1` |
-| Policy statement | `policy-statement-id`: `polstmt-1` | `<parent-ref>-polstmt-1` |
-| Policy substatement | `policy-substatement-id`: `polsubstmt-1` | `<statement-ref>-polsubstmt-1` |
-| Policy condition | `policy-condition-id`: `polcond-1` | `<section-ref>-polcond-1` |
-| Assignment selector | `selector-id`: `polasn-1` | `<host-ref>-polasn-1` |
+| Policy (top-level) | `PLCY-01` | *(none)* |
+| Section | `sect-id`: `SECT-07` | `<policy-id>-SECT-07` |
+| Role | `role-id`: `ROLE-01` | `<section-ref>-ROLE-01` |
+| Responsibility | `RESP-id`: `RESP-01` | *(same row as role)* |
+| Scope item | `scope-id`: `SCOP-1` | `<section-ref>-SCOP-01` |
+| Policy statement | `policy-statement-id`: `STMT-01` | `<parent-ref>-STMT-01` |
+| Policy substatement | `policy-substatement-id`: `SUST-01` | `<statement-ref>-SUST-01` |
+| Policy condition | `policy-condition-id`: `COND-01` | `<section-ref>-COND-01` |
+| Assignment selector | `selector-id`: `SLCT1` | `<host-ref>-SLCT1` |
 
 ## Per-statement fields (always present)
 
@@ -110,16 +114,17 @@ Every local id is short. Every non-top-level object also carries `reference-id` 
   "asset-owner": "",
   "asset-id": "",
   "mappings": { "<downstream-component-id>": "<mapped-item-id>" },
-  "selectors": [ { "placeholder": "x1", "value": 8 } ]
+  "selectors": [ { <selector-id>: "value": 8 } ]
+  "Assignments": 
 }
 ```
 
-## Scope item shape (`policy.scope.scopes[]` and `polcsec-2.scopes[]`)
+## Scope item shape (`policy.scope.scopes[]` and `policy.sections.scopes[]`)
 
 ```json
 {
-  "scope-id": "polscope-1",
-  "reference-id": "<policy-id>-polcsec-2-polscope-1",
+  "scope-id": "SCOP-1",
+  "reference-id": "<policy-id>-SECT1-polscope-1",
   "scope-item": "business processes",
   "category": "process",
   "introducer": "covers",
@@ -133,15 +138,15 @@ Every local id is short. Every non-top-level object also carries `reference-id` 
 
 ```json
 {
-  "sect-id": "polcsec-8",
-  "reference-id": "<policy-id>-polcsec-8",
+  "sect-id": "SECT-08",
+  "reference-id": "<policy-id>-SECT-08",
   "section-number": "8.0",
   "section-title": "Account Management",
   "section-type": "policy-section",
-  "policy-statements": [ /* polstmt-N objects */ ],
+  "policy-statements": [ /* STMT-N objects */ ],
   "policy-conditions": [
     {
-      "policy-condition-id": "polcond-1",
+      "policy-condition-id": "COND-01",
       "reference-id": "<policy-id>-polcsec-8-polcond-1",
       "policy-condition-title": "Policy conditions for ...",
       "policy-statements": [ /* polstmt-N objects under the condition */ ]
@@ -154,47 +159,20 @@ Every local id is short. Every non-top-level object also carries `reference-id` 
 
 Within any statement / substatement / condition text:
 
-1. Each match (bracketed `[…]` first, then curated inline patterns) is replaced inline with `[xN]` where `N` starts at 1 per host text.
-2. The original phrase is preserved in `assignment-selectors.by-section[<sect-id>][]`.
-3. Bracketed wins on overlap; among inline patterns, the first registered wins.
+Needs to be redone by looking at example
 
 ### Curated inline patterns
 
-| Pattern | type slug |
-|---|---|
-| `eight (8)` / spelled-number + parenthetical | `numeric-value` (with `numeric-value: N`) |
-| `a defined number` | `defined-number` |
-| `a defined period of <X>` | `defined-period` |
-| `periodically` | `frequency-periodic` |
-| `as applicable` / `when(ever) possible` / `as appropriate` / `where appropriate` / `if necessary` | `applicability-conditional` |
+Needs to be redone by looking at example
 
-## Assignment-selectors index
+## Assignments and selectors index
 
 ```json
-{
-  "assignment-selectors": {
-    "by-section": {
-      "polcsec-7": [
-        {
-          "selector-id": "polasn-1",
-          "reference-id": "<policy-id>-polcsec-7-polstmt-1-polasn-1",
-          "policy-id": "<policy-id>",
-          "policy-section-id": "polcsec-7",
-          "policy-statement-id": "polstmt-1",
-          "policy-substatement-id": null,
-          "policy-condition-id": null,
-          "host-id": "polstmt-1",
-          "host-reference-id": "<policy-id>-polcsec-7-polstmt-1",
-          "placeholder": "[x1]",
-          "selector-style": "bracketed",
-          "selector-type": "organization-defined-personnel-or-roles",
-          "selector": "organization-defined personnel or roles",
-          "matched-text": "[organization-defined personnel or roles]"
-        }
-      ]
-    }
-  }
-}
+
+
+[NEEDS TO BE REDONE BY LOOKING AT example]
+
+
 ```
 
 Index keys are local sect-ids (`polcsec-N`), not full reference-ids.
@@ -207,17 +185,72 @@ Index keys are local sect-ids (`polcsec-N`), not full reference-ids.
 
 Lines that are exactly `***` (three or more asterisks) toggle in/out of a condition block. Adjacent `***\n***` closes one condition and opens the next. Inside an open block, the first `Policy conditions for X` line becomes the condition title.
 
-## Framework auto-detection
+## Framework codes (source of truth)
 
-| Filename pattern | Tag(s) added |
-|---|---|
-| `nist`, `nist-800-53`, `nist-800-171`, `nist-800-172` | `nist`, `nist-800-53`, etc. |
-| `iso`, `iso-27001`, `iso-27018` | `iso-27001`, `iso-27018` |
-| `soc`, `soc-2` | `soc-2` |
-| `pci`, `pci-dss` | `pci-dss` |
-| `cmmc`, `hipaa`, `gdpr`, `ferpa`, `cyber-essentials` | matching tag |
+Every framework has a **code** (used inside `policy-id`) and a **tag** (slug, used in `framework-tags`). Both land on the policy:
 
-Override or extend with `--framework iso-27001,soc-2`. Override the policy-id slug with `--policy-id <slug>`.
+```json
+"framework-tags":  ["nist-800-53"],
+"framework-codes": ["NI100"]
+```
+
+| Framework | Code | Tag |
+|---|---|---|
+| NIST 800-53 | `NI100` | `nist-800-53` |
+| TX-RAMP | `NI102` | `tx-ramp` |
+| NIST 800-171 | `NI105` | `nist-800-171` |
+| NIST 800-172 | `NI106` | `nist-800-172` |
+| NIST CSF | `NI107` | `nist-csf` |
+| NIST CSF 2.0 | `NI108` | `nist-csf-2` |
+| NIST AI RMF | `NI110` | `nist-ai-rmf` |
+| SOC 2 Type 2 | `SO115` | `soc-2` |
+| ISO 27001 | `IS120` | `iso-27001` |
+| ISO 42001 | `IS121` | `iso-42001` |
+| CSA STAR | `CS130` | `csa-star` |
+| Cyber Essentials | `CY140` | `cyber-essentials` |
+| HIPAA | `HI200` | `hipaa` |
+| FERPA | `FE210` | `ferpa` |
+| GDPR | `GD250` | `gdpr` |
+| PCI DSS 4.0.1 | `PC280` | `pci-dss` |
+| HECVAT 4.15 | `HE415` | `hecvat` |
+| **Multi-framework** | `MULT500-NN` | *(omit; list each real framework in tags + codes)* |
+
+### Policy-id format
+
+`PLCY-<NNN>-<CODE>-<RRR>-<VV>[A]` where:
+- `NNN` = company-wide policy counter (every policy ever issued by the org), starts at `001`
+- `CODE` = a framework code from the table above (or `MULT500-NN` when a single policy covers multiple)
+- `RRR` = index *within that framework's policy set* (1st NIST 800-53 policy = `001`, 2nd = `002`, …), starts at `001`
+- `VV` = version of this policy (1st cut = `01`, each rewrite bumps), starts at `01`
+- `[A]` = optional single-letter variant suffix (`A`, `B`, `C`, …) when the same logical policy ships in multiple org-specific variants (e.g. `…-01A` for Symplicity, `…-01B` for Contratanet)
+
+First two segments (`NNN-CODE-RRR`) stay stable across versions and variants — only `VV` and the variant letter change. The `policy-version-history` array on the policy chains earlier versions/variants.
+
+Multi-framework example: `PLCY-007-MULT500-01-001-01` carries `framework-codes: ["NI100","SO115"]` enumerating its real frameworks.
+
+### Filename auto-detection → tags + codes
+
+| Filename pattern | Tags added | Codes added |
+|---|---|---|
+| `nist-800-53`, `nist` (bare) | `nist-800-53` | `NI100` |
+| `tx-ramp`, `txramp` | `tx-ramp` | `NI102` |
+| `nist-800-171` | `nist-800-171` | `NI105` |
+| `nist-800-172` | `nist-800-172` | `NI106` |
+| `nist-csf-2`, `csf-2` | `nist-csf-2` | `NI108` |
+| `nist-csf` | `nist-csf` | `NI107` |
+| `nist-ai-rmf`, `ai-rmf` | `nist-ai-rmf` | `NI110` |
+| `soc-2`, `soc2` | `soc-2` | `SO115` |
+| `iso-27001` | `iso-27001` | `IS120` |
+| `iso-42001` | `iso-42001` | `IS121` |
+| `csa-star`, `csa` | `csa-star` | `CS130` |
+| `cyber-essentials` | `cyber-essentials` | `CY140` |
+| `hipaa` | `hipaa` | `HI200` |
+| `ferpa` | `ferpa` | `FE210` |
+| `gdpr` | `gdpr` | `GD250` |
+| `pci-dss`, `pci` | `pci-dss` | `PC280` |
+| `hecvat` | `hecvat` | `HE415` |
+
+Override or extend with `--framework nist-800-53,soc-2` (tag slugs). Override the policy-id with `--policy-id PLCY-NNN-CODE-RRR-VV[A]`.
 
 ## CSV output
 
@@ -226,10 +259,11 @@ Override or extend with `--framework iso-27001,soc-2`. Override the policy-id sl
 ```
 policy-id, framework-tags,
 section-id, section-reference-id, section-number, section-title, section-type,
-condition-id, condition-reference-id, condition-title,
-parent-statement-id, parent-reference-id,
+condition-id, condition-reference-id, condition-framework,
+statement-id, statement-reference-id,
+Substatement-id, Substatement-reference-id, 
 kind, local-id, reference-id, text,
-assignment-selectors,
+Assignment-id, assignment-reference-id,
 scopes, assets-personnel, assets-infrastructure, assets-applications,
 policy-map-id,
 mapped-controls, evidence-tasks, security-portal-ids, privacy-portal-ids,

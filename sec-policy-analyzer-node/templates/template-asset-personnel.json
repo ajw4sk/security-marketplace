@@ -1,0 +1,8 @@
+{
+  "$template-note": "Single personnel asset. Add to default-assets.json's assets.personnel array.",
+  "asset-id": "PERS-001",
+  "role-title": "Information Security Officer",
+  "department": "Security",
+  "reports-to": "CISO",
+  "notes": ""
+}

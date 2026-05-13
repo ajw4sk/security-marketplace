@@ -18,7 +18,8 @@
 #   run.sh exec <node-args...>                     # raw passthrough (debug)
 #
 # Defaults applied when CLI flag is omitted (CLI > env > config-file > built-in):
-#   default-controls           SEC_POLICY_DEFAULT_CONTROLS
+#   default-controls           SEC_POLICY_DEFAULT_CONTROLS         (parser --controls CSV)
+#   default-controls-xlsx      SEC_POLICY_DEFAULT_CONTROLS_XLSX    (map-controls --controls xlsx)
 #   default-framework          SEC_POLICY_DEFAULT_FRAMEWORK
 #   default-output-mode        SEC_POLICY_DEFAULT_OUTPUT_MODE  (test|production)
 #   default-test-output-dir    SEC_POLICY_DEFAULT_TEST_OUTPUT_DIR
@@ -237,14 +238,42 @@ cmd_exec() {
   exec "$node" "$@"
 }
 
+# v2 → v3 schema transform. All args forwarded verbatim.
+cmd_transform_v3() {
+  local node
+  node="$(resolve_node)" || { echo "ERROR: no node binary resolved — run /sec-policy-setup" >&2; exit 1; }
+  exec "$node" "${SCRIPTS}/transform_to_v3.mjs" "$@"
+}
+
+# policy → controls mapper. All args forwarded verbatim. If --controls is omitted
+# we try the resolved default (CLI > env > config > built-in).
+cmd_map_controls() {
+  local node
+  node="$(resolve_node)" || { echo "ERROR: no node binary resolved — run /sec-policy-setup" >&2; exit 1; }
+  local args=("$@")
+  # Inject --controls default if not present.
+  local has_controls=0
+  for a in "${args[@]+${args[@]}}"; do
+    if [ "$a" = "--controls" ]; then has_controls=1; break; fi
+  done
+  if [ "$has_controls" -eq 0 ]; then
+    local v
+    v="$(resolved SEC_POLICY_DEFAULT_CONTROLS_XLSX default-controls-xlsx "")"
+    if [ -n "$v" ] && [ -e "$v" ]; then args+=(--controls "$v"); fi
+  fi
+  exec "$node" "${SCRIPTS}/map_controls.mjs" "${args[@]+${args[@]}}"
+}
+
 # ---- dispatch ---------------------------------------------------------------
 sub="${1:-}"
 shift || true
 case "$sub" in
-  doctor)     cmd_doctor "$@" ;;
-  parse)      cmd_parse "$@" ;;
-  parse-all)  cmd_parse_all "$@" ;;
-  exec)       cmd_exec "$@" ;;
+  doctor)         cmd_doctor "$@" ;;
+  parse)          cmd_parse "$@" ;;
+  parse-all)      cmd_parse_all "$@" ;;
+  transform-v3)   cmd_transform_v3 "$@" ;;
+  map-controls)   cmd_map_controls "$@" ;;
+  exec)           cmd_exec "$@" ;;
   ""|-h|--help)
     cat <<EOF
 sec-policy-analyzer-node — entrypoint
@@ -253,6 +282,9 @@ Subcommands:
   doctor                          Run the env doctor
   parse <docx> [parser-flags]     Parse one .docx (--csv shorthand expands to sibling path)
   parse-all [<dir>] [flags]       Parse every .docx in <dir> (default: cwd)
+  transform-v3 --policy-only <p>  Emit a v3 schema variant (compact ids, condition framework-tags)
+  map-controls --policy <p> --controls <xlsx>
+                                  Map policy statements to control catalog entries
   exec <node-args>                Raw node passthrough (debug)
 
 Resolution chain (first match wins):
