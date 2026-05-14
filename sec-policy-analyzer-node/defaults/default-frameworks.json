@@ -17,7 +17,8 @@
     "FE210": { "tag": "ferpa",           "name": "FERPA",              "edition": null },
     "GD250": { "tag": "gdpr",            "name": "GDPR",               "edition": null },
     "PC280": { "tag": "pci-dss",         "name": "PCI DSS",            "edition": "4.0.1" },
-    "HE415": { "tag": "hecvat",          "name": "HECVAT",             "edition": "4.15" }
+    "HE415": { "tag": "hecvat",          "name": "HECVAT",             "edition": "4.15" },
+    "CM300": { "tag": "cmmc",            "name": "CMMC",               "edition": "2.0" }
   },
   "multi-framework": {
     "code-pattern": "MULT500-NN",
