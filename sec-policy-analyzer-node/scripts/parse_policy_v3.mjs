@@ -677,7 +677,8 @@ function buildDefaultSection({ policyId, sectIndex, sectionType, canonicalTitle,
   } else if (sectionType === 'scope') {
     const scopeText = joinLines(paras.map((p) => p.text));
     base['scope']  = scopeText;
-    base['scopes'] = extractScopes(scopeText, sectRef).length ? extractScopes(scopeText, sectRef) : null;
+    const scopes = extractScopes(scopeText, sectRef);
+    base['scopes'] = scopes.length ? scopes : null;
   } else if (sectionType === 'roles-and-responsibilities') {
     base['roles-and-responsibilities'] = buildRoles(raw, sectRef);
   } else if (sectionType === 'management-commitment') {

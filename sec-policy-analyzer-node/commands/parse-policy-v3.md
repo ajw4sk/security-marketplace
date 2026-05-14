@@ -14,8 +14,8 @@ Authoritative schema reference: `${CLAUDE_PLUGIN_ROOT}/skills/policy-parsing-v3/
 1. Resolve `$1` (the docx path). If `$1` is missing or the file doesn't exist, ask the user for it. (`run.sh` itself also validates this and exits cleanly if the docx is bogus.)
 
 2. Forward all flags from `$@` verbatim to `run.sh`. The wrapper handles node resolution and the same default-injection chain used by `/parse-policy-v2`:
-   - `--csv` (no path) expands to `--csv-output <docx-dir>/<docx-stem>.csv`. Same expansion when `default-csv: true` is set in the config file or `SEC_POLICY_DEFAULT_CSV=true` is exported.
-   - If neither `--output-dir`/`-o` nor `--test-output-dir`/`-t` is passed, the wrapper picks based on `default-output-mode` (default: `test`, pointed at the docx's parent dir).
+   - If neither `--output-dir`/`-o` nor `--test-output-dir`/`-t` is passed, the wrapper routes outputs into `${parsing-output-dir}/policy/` (default `${CLAUDE_PROJECT_DIR}/parsing-output/policy/`; configurable via `parsing-output-dir:` in `.local.md` or `SEC_POLICY_DEFAULT_PARSING_OUTPUT_DIR`). When `default-output-mode: production` is set, it instead uses `${default-output-dir}/{policies-only,associated-controls,complete-associations}/` subfolders.
+   - `--csv` (no path) expands to `--csv-output <resolved-test-output-dir>/<docx-stem>.csv` — alongside the JSONs. Same expansion when `default-csv: true` is set in the config file or `SEC_POLICY_DEFAULT_CSV=true` is exported.
    - `--policy-id`, `--framework`, `--policy-map`, `--verbose` pass through unchanged.
    - Without `--policy-id`, the parser auto-derives `PLCY-001-<CODE>-001-01` where `<CODE>` is the first framework code from `defaults/default-frameworks.json` (or `MULT500-01` when multiple frameworks are detected, `XX000` if none). Override with `--policy-id PLCY-NNN-CODE-RRR-VV[A]` for real policy ids.
 
@@ -40,14 +40,16 @@ Authoritative schema reference: `${CLAUDE_PLUGIN_ROOT}/skills/policy-parsing-v3/
 
 ## Output files
 
-In test mode (default), all three files land alongside the docx:
+In test mode (default), all three JSONs + CSV land in `${parsing-output-dir}/policy/` (default `${CLAUDE_PROJECT_DIR}/parsing-output/policy/`):
 
 - `<base>_only.v3.json`
 - `<base>_associated_controls.v3.json`
 - `<base>_complete_associations.v3.json`
-- `<base>.v3.csv` (when `--csv` is set)
+- `<base>.csv` (when `--csv` is set)
 
-In production mode they go into `policies-only/`, `associated-controls/`, `complete-associations/` subfolders of `default-output-dir`.
+Override the destination with `--test-output-dir <dir>` (or set `default-test-output-dir:` in `.local.md` / `SEC_POLICY_DEFAULT_TEST_OUTPUT_DIR`).
+
+In production mode (`default-output-mode: production`) outputs go into `policies-only/`, `associated-controls/`, `complete-associations/` subfolders of `default-output-dir`.
 
 ## Resolution priority for every setting
 

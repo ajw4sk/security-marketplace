@@ -3,27 +3,32 @@
  * v2 → v3 schema transform.
  *
  * Reads a parsed `*_policy_only.json` (and optional `*_complete_associations.json`)
- * produced by parse_policy_v2.mjs and emits an additional v3 file:
+ * produced by `parse_policy_v2.mjs` and emits an additive v3 sibling file:
  *
  *   <stem>_policy_only.v3.json
- *   <stem>_complete_associations.v3.json   (only if input complete file is given)
+ *   <stem>_complete_associations.v3.json   (only when the input complete file is given)
  *
- * v3 changes vs v2 (additive — v2 stays byte-for-byte compatible):
- *   - Compact reference-ids:
- *       polcsec-7         → s7
- *       polcond-1         → c1
- *       polstmt-1         → r1
- *       polsubstmt-1      → embedded as `.1` after the parent statement (e.g. r1.1)
- *       polrole-1         → role1
- *       polscope-1        → sc1
- *       polasn-1          → x1   (matches the [x1] inline placeholder)
- *     So `nist-access-control-2026-polcsec-9-polcond-4-polstmt-1`
- *      → `nist-access-control-2026-s9-c4-r1`
- *   - On every transformed object: `legacy-reference-id` preserves the v2 form.
- *   - `policy-conditions[].framework-tags`: detected from the condition title
- *     (e.g. "Policy conditions for CMMC 2.0 and NIST 800-171" → ["cmmc","nist-800-171"]).
- *     Empty array means "inherits the policy-level framework-tags".
- *   - schema-version bumped to "v3"; `v2-source-file` field added.
+ * Output shape matches `parse_policy_v3.mjs` so a direct v3 parse and a
+ * transform of the equivalent v2 file produce the same v3 structure:
+ *
+ *   - schema-version: "v3"
+ *   - policy-id rewritten to framework-coded PLCY-NNN-<CODE>-RRR-VV[A] form
+ *     (using defaults/default-frameworks.json for tag → code mapping)
+ *   - framework-codes + frameworks arrays at the top level
+ *   - Compact uppercase id family for every local id and reference-id:
+ *       polcsec-7  → SECT-07
+ *       polcond-1  → COND-01
+ *       polstmt-1  → STMT-01
+ *       polsubstmt-1 → SUST-01
+ *       polrole-1  → ROLE-01
+ *       polresp-1  → RESP-01
+ *       polscope-1 → SCOP-01
+ *       polasn-1   → SLCT-01
+ *   - legacy-reference-id on every object that had a v2 reference-id (the
+ *     original v2 form preserved verbatim)
+ *   - policy-conditions[].framework-tags detected from the condition title
+ *     (e.g. "Policy conditions for CMMC 2.0 and NIST 800-171"
+ *      → ["nist-800-171","cmmc"])
  *
  * Usage:
  *   transform_to_v3.mjs --policy-only <path.json> [--complete <path.json>] [--out-dir <dir>]
@@ -31,41 +36,114 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
-const FRAMEWORK_PATTERNS = [
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+// ─── Framework detection (precise + fallback) ──────────────────────────────
+// Precise patterns: exact framework + revision. Used everywhere except
+// document-level fallback so "NIST 800-171" doesn't also tag nist-800-53.
+const FRAMEWORK_PATTERNS_PRECISE = [
   [/\bnist[-_ ]?800[-_ ]?53\b/i,    'nist-800-53'],
   [/\bnist[-_ ]?800[-_ ]?171\b/i,   'nist-800-171'],
   [/\bnist[-_ ]?800[-_ ]?172\b/i,   'nist-800-172'],
-  [/\biso[-_ ]?27018\b/i,           'iso-27018'],
+  [/\bnist[-_ ]?csf[-_ ]?2\b/i,     'nist-csf-2'],
+  [/\bnist[-_ ]?csf\b/i,            'nist-csf'],
+  [/\bnist[-_ ]?ai[-_ ]?rmf\b/i,    'nist-ai-rmf'],
+  [/\btx[-_ ]?ramp\b/i,             'tx-ramp'],
   [/\biso[-_ ]?27001\b/i,           'iso-27001'],
+  [/\biso[-_ ]?42001\b/i,           'iso-42001'],
   [/\bsoc[-_ ]?2\b/i,               'soc-2'],
   [/\bpci[-_ ]?dss\b/i,             'pci-dss'],
-  [/\bcmmc\b/i,                     'cmmc'],
+  [/\bcsa[-_ ]?star\b/i,            'csa-star'],
+  [/\bcyber[-_ ]?essentials\b/i,    'cyber-essentials'],
   [/\bhipaa\b/i,                    'hipaa'],
-  [/\bgdpr\b/i,                     'gdpr'],
   [/\bferpa\b/i,                    'ferpa'],
-  [/\bfedramp\b/i,                  'fedramp'],
-  [/cyber[-_ ]?essentials/i,        'cyber-essentials'],
+  [/\bgdpr\b/i,                     'gdpr'],
+  [/\bcmmc\b/i,                     'cmmc'],
+  [/\bhecvat\b/i,                   'hecvat'],
 ];
 
 function detectFrameworkTags(text) {
   if (!text) return [];
   const out = new Set();
-  for (const [rx, tag] of FRAMEWORK_PATTERNS) if (rx.test(text)) out.add(tag);
+  for (const [rx, tag] of FRAMEWORK_PATTERNS_PRECISE) if (rx.test(text)) out.add(tag);
   return [...out];
 }
 
-// ─── id rewrite helpers ────────────────────────────────────────────────────
+// ─── Framework registry (defaults/default-frameworks.json) ─────────────────
+function loadFrameworkRegistry() {
+  const regPath = path.join(__dirname, '..', 'defaults', 'default-frameworks.json');
+  if (fs.existsSync(regPath)) {
+    try { return JSON.parse(fs.readFileSync(regPath, 'utf-8')); } catch (e) {
+      console.error(`WARN: could not parse ${regPath}: ${e?.message || e}`);
+    }
+  }
+  return { frameworks: {} };
+}
+
+// v2 used a few ambiguous fuzzy slugs (e.g. "nist" without a revision). Map
+// each to the canonical v3 slug the registry knows about so transformed v2
+// docs end up with the same framework-codes a direct v3 parse would produce.
+const V2_TAG_ALIASES = {
+  nist:   'nist-800-53',
+  iso:    'iso-27001',
+  soc:    'soc-2',
+  pci:    'pci-dss',
+};
+
+function normalizeTags(tags) {
+  const out = [];
+  const seen = new Set();
+  for (const tag of tags || []) {
+    const canon = V2_TAG_ALIASES[tag] || tag;
+    if (!seen.has(canon)) { out.push(canon); seen.add(canon); }
+  }
+  return out;
+}
+
+function tagsToCodes(tags, registry) {
+  const codes = [];
+  const seen = new Set();
+  for (const tag of tags || []) {
+    for (const [code, info] of Object.entries(registry.frameworks || {})) {
+      if (info.tag === tag && !seen.has(code)) { codes.push(code); seen.add(code); }
+    }
+  }
+  return codes;
+}
+
+function codesToDisplayNames(codes, registry) {
+  return codes.map((c) => {
+    const info = (registry.frameworks || {})[c];
+    if (!info) return c;
+    return info.edition ? `${info.name} ${info.edition}` : info.name;
+  });
+}
+
+function buildV3PolicyId(frameworkCodes) {
+  let code;
+  if (frameworkCodes.length > 1) code = 'MULT500-01';
+  else if (frameworkCodes.length === 1) code = frameworkCodes[0];
+  else code = 'XX000';
+  return `PLCY-001-${code}-001-01`;
+}
+
+// ─── ID rewrites (v2 pol* → v3 compact uppercase, zero-padded) ────────────
+const pad2 = (n) => String(n).padStart(2, '0');
+
+// Compound rule first so "polstmt-1-polsubstmt-2" lands as "STMT-01-SUST-02"
+// without a stray double-rewrite of the inner polstmt.
 const ID_RULES = [
-  [/polcsec-(\d+)/g,    (_,n) => `s${n}`],
-  [/polcond-(\d+)/g,    (_,n) => `c${n}`],
-  [/polstmt-(\d+)-polsubstmt-(\d+)/g, (_,a,b) => `r${a}.${b}`],
-  [/polsubstmt-(\d+)/g, (_,n) => `.${n}`], // safety net (shouldn't be reached after the joined rule)
-  [/polstmt-(\d+)/g,    (_,n) => `r${n}`],
-  [/polrole-(\d+)/g,    (_,n) => `role${n}`],
-  [/polresp-(\d+)/g,    (_,n) => `resp${n}`],
-  [/polscope-(\d+)/g,   (_,n) => `sc${n}`],
-  [/polasn-(\d+)/g,     (_,n) => `x${n}`],
+  [/polcsec-(\d+)/g,    (_, n) => `SECT-${pad2(n)}`],
+  [/polcond-(\d+)/g,    (_, n) => `COND-${pad2(n)}`],
+  [/polsubstmt-(\d+)/g, (_, n) => `SUST-${pad2(n)}`],
+  [/polstmt-(\d+)/g,    (_, n) => `STMT-${pad2(n)}`],
+  [/polrole-(\d+)/g,    (_, n) => `ROLE-${pad2(n)}`],
+  [/polresp-(\d+)/g,    (_, n) => `RESP-${pad2(n)}`],
+  [/polscope-(\d+)/g,   (_, n) => `SCOP-${pad2(n)}`],
+  [/polasn-(\d+)/g,     (_, n) => `SLCT-${pad2(n)}`],
 ];
 
 function compactRef(s) {
@@ -75,16 +153,31 @@ function compactRef(s) {
   return out;
 }
 
-// Walk an arbitrary JSON tree and compact every reference-id-like string field.
-// We only rewrite values; key names stay the same so consumers find their fields.
-const REWRITE_KEYS = new Set([
-  'reference-id',
+// Keys whose VALUE is a reference-id-shaped string we should rewrite (and on
+// which we should attach legacy-reference-id back-links for primary refs).
+const REF_KEYS_PRIMARY  = new Set(['reference-id']);
+const REF_KEYS_ARRAY    = new Set(['related-policy-statement-ids', 'policy-statement-ids']);
+const REF_KEYS_SCALAR   = new Set([
   'parent-reference-id',
   'section-reference-id',
   'condition-reference-id',
   'host-reference-id',
-  'related-policy-statement-ids',
-  'policy-statement-ids',
+]);
+
+// Keys whose VALUE is a bare local id (one segment) to rewrite as well.
+// Note: `policy-id` is NOT included here — it's reconstructed from frameworks
+// at the top level by replacePolicyId() since v3 uses PLCY-NNN-CODE-RRR-VV[A].
+const LOCAL_ID_KEYS = new Set([
+  'sect-id',
+  'policy-condition-id',
+  'policy-statement-id',
+  'policy-substatement-id',
+  'role-id',
+  'resp-id',
+  'scope-id',
+  'selector-id',
+  'host-id',
+  'policy-section-id',
 ]);
 
 function transformValue(v) {
@@ -92,11 +185,15 @@ function transformValue(v) {
   if (v && typeof v === 'object') {
     const out = {};
     for (const [k, val] of Object.entries(v)) {
-      if (REWRITE_KEYS.has(k) && typeof val === 'string') {
+      if (REF_KEYS_PRIMARY.has(k) && typeof val === 'string') {
         out[k] = compactRef(val);
-        if (k === 'reference-id' && val) out['legacy-reference-id'] = val;
-      } else if (REWRITE_KEYS.has(k) && Array.isArray(val)) {
+        if (val) out['legacy-reference-id'] = val;
+      } else if (REF_KEYS_SCALAR.has(k) && typeof val === 'string') {
+        out[k] = compactRef(val);
+      } else if (REF_KEYS_ARRAY.has(k) && Array.isArray(val)) {
         out[k] = val.map(compactRef);
+      } else if (LOCAL_ID_KEYS.has(k) && typeof val === 'string') {
+        out[k] = compactRef(val);
       } else {
         out[k] = transformValue(val);
       }
@@ -106,7 +203,35 @@ function transformValue(v) {
   return v;
 }
 
-// ─── condition framework-tag annotation ────────────────────────────────────
+// ─── Policy-id rewrite ─────────────────────────────────────────────────────
+// Replace every occurrence of the v2 slug-style policy-id with the v3
+// framework-coded form throughout reference-ids, host-reference-ids, etc.
+function rewritePolicyIdInRefs(doc, oldId, newId) {
+  if (!oldId || !newId || oldId === newId) return;
+  const escaped = oldId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const rx = new RegExp(escaped, 'g');
+
+  function walk(v) {
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    if (v && typeof v === 'object') {
+      for (const [k, val] of Object.entries(v)) {
+        if (typeof val === 'string'
+            && (REF_KEYS_PRIMARY.has(k)
+                || REF_KEYS_SCALAR.has(k)
+                || k === 'legacy-reference-id')) {
+          v[k] = val.replace(rx, newId);
+        } else if (Array.isArray(val) && REF_KEYS_ARRAY.has(k)) {
+          v[k] = val.map((s) => (typeof s === 'string' ? s.replace(rx, newId) : s));
+        } else {
+          walk(val);
+        }
+      }
+    }
+  }
+  walk(doc);
+}
+
+// ─── Condition framework-tags annotation ──────────────────────────────────
 function annotateConditions(doc) {
   const sections = doc?.policy?.['policy-requirements'];
   if (!Array.isArray(sections)) return;
@@ -116,7 +241,6 @@ function annotateConditions(doc) {
     for (const cond of conds) {
       const title = cond['policy-condition-title'] || '';
       const tags = detectFrameworkTags(title);
-      // Insert near the top of the object for readability.
       cond['framework-tags'] = tags;
       cond['framework-tags-inherited'] = tags.length === 0;
     }
@@ -141,19 +265,54 @@ function usage() {
   console.log(`Usage: transform_to_v3.mjs --policy-only <path.json> [--complete <path.json>] [--out-dir <dir>]`);
 }
 
+function transformDocument(doc, registry) {
+  const v3 = transformValue(doc);
+
+  // Top-level v3 framing.
+  v3['schema-version'] = 'v3';
+
+  // Normalize fuzzy v2 tag slugs (e.g. "nist" → "nist-800-53") so they line
+  // up with the registry. Write the canonical list back so v3 consumers see
+  // the same tag values a direct v3 parse would have produced.
+  const rawTags = Array.isArray(v3['framework-tags']) ? v3['framework-tags'].slice() : [];
+  const tags = normalizeTags(rawTags);
+  v3['framework-tags'] = tags;
+
+  // framework-codes from canonical framework-tags via registry.
+  const codes = tagsToCodes(tags, registry);
+  v3['framework-codes'] = codes;
+  // Replace v2's `frameworks` (which may be empty or use v2 fuzzy names) with
+  // the registry's display names so it matches a direct v3 parse.
+  v3['frameworks'] = codesToDisplayNames(codes, registry);
+
+  // Reconstruct policy-id in framework-coded form, then rewrite every ref-id
+  // chain that still embeds the old slug.
+  const oldPolicyId = typeof v3['policy-id'] === 'string' ? v3['policy-id'] : '';
+  const newPolicyId = buildV3PolicyId(codes);
+  v3['policy-id'] = newPolicyId;
+  if (!v3['policy-id-source']) v3['policy-id-source'] = 'transform';
+  rewritePolicyIdInRefs(v3, oldPolicyId, newPolicyId);
+
+  // Condition framework-tag annotation (runs after the rest of the tree has
+  // been rewritten so we annotate the v3-shaped objects).
+  annotateConditions(v3);
+
+  return v3;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || !args.policyOnly) { usage(); process.exit(args.help ? 0 : 2); }
   if (!fs.existsSync(args.policyOnly)) { console.error('not found:', args.policyOnly); process.exit(2); }
-  const inDir = path.dirname(path.resolve(args.policyOnly));
+
+  const registry = loadFrameworkRegistry();
+  const inDir  = path.dirname(path.resolve(args.policyOnly));
   const outDir = args.outDir ? path.resolve(args.outDir) : inDir;
   fs.mkdirSync(outDir, { recursive: true });
 
   const v2 = JSON.parse(fs.readFileSync(args.policyOnly, 'utf8'));
-  const v3 = transformValue(v2);
-  v3['schema-version'] = 'v3';
+  const v3 = transformDocument(v2, registry);
   v3['v2-source-file'] = path.basename(args.policyOnly);
-  annotateConditions(v3);
 
   const base = path.basename(args.policyOnly).replace(/\.json$/i, '');
   const outPath = path.join(outDir, `${base}.v3.json`);
@@ -163,10 +322,8 @@ function main() {
   if (args.complete) {
     if (!fs.existsSync(args.complete)) { console.error('not found:', args.complete); process.exit(2); }
     const cv2 = JSON.parse(fs.readFileSync(args.complete, 'utf8'));
-    const cv3 = transformValue(cv2);
-    cv3['schema-version'] = 'v3';
+    const cv3 = transformDocument(cv2, registry);
     cv3['v2-source-file'] = path.basename(args.complete);
-    annotateConditions(cv3);
     const cbase = path.basename(args.complete).replace(/\.json$/i, '');
     const cOut = path.join(outDir, `${cbase}.v3.json`);
     fs.writeFileSync(cOut, JSON.stringify(cv3, null, 2));

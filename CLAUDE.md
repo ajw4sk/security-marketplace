@@ -28,7 +28,7 @@ bash sec-policy-analyzer-node/scripts/run.sh parse <docx> [--csv] [--policy-map]
 bash sec-policy-analyzer-node/scripts/run.sh parse-all <dir> [--csv]
 
 # Map a parsed policy JSON against a controls catalog (e.g. NIST 800-53 xlsx)
-bash sec-policy-analyzer-node/scripts/run.sh map-controls <policy.json> --controls <catalog.xlsx>
+bash sec-policy-analyzer-node/scripts/run.sh map-controls --policy <policy.json> --controls <catalog.xlsx> [--sheet <name>] [--variant section-aware]
 
 # Direct parser invocation (debug / no wrapper defaults)
 node sec-policy-analyzer-node/scripts/parse_policy_v2.mjs --docx <path> --test-output-dir <dir> --csv-output <path.csv> --verbose
@@ -46,7 +46,8 @@ Understanding how a slash command invocation actually runs the parser requires r
 2. **`run.sh` wrapper** — owns:
    - **Node-binary resolution** (priority chain, first match wins): `$SEC_POLICY_NODE` → `node-bin:` in `${CLAUDE_PROJECT_DIR}/.claude/sec-policy-analyzer-node.local.md` → `${CLAUDE_PLUGIN_ROOT}/scripts/.state/node-bin` (written by the doctor) → `command -v node`.
    - **Default-flag injection** (same chain semantics for *every* setting): CLI flag → `SEC_POLICY_DEFAULT_*` env var → `.local.md` frontmatter → built-in default. Settings include `default-controls`, `default-framework`, `default-output-mode` (`test`|`production`), `default-test-output-dir`, `default-output-dir`, `default-csv`, `default-policy-map`.
-   - **`--csv` shorthand** expands to `--csv-output <docx-dir>/<docx-stem>.csv` (the wrapper, not the parser, knows the docx path).
+   - **`--csv` shorthand** expands to `--csv-output <resolved-test-output-dir>/<docx-stem>.csv` — i.e. alongside the JSONs. With default routing this is `${parsing-output-dir}/policy/<docx-stem>.csv`; in production mode (where JSONs go into named subdirs), it falls back to `<docx-dir>/<docx-stem>.csv`.
+   - **Default output destinations**: when no `--output-dir`/`--test-output-dir` is passed and `default-output-mode` isn't `production`, parser outputs route to `${parsing-output-dir}/policy/` (default `${CLAUDE_PROJECT_DIR}/parsing-output/policy/`). `map-controls` outputs (`--out`, `--condensed-out`) route to `${parsing-output-dir}/controls/` named `<policy-base>_mapping{,_condensed}.json`. Override via the same chain — `parsing-output-dir:` config key, `SEC_POLICY_DEFAULT_PARSING_OUTPUT_DIR`, or explicit flags.
 3. **`sec-policy-doctor.sh`** — same node-resolution chain as `run.sh`. Reads `scripts/package.json` `dependencies` as the **single source of truth** for runtime deps and verifies each with `require()`. On success, writes the verified node path to `scripts/.state/node-bin` so subsequent invocations lock onto the same binary. Exit codes: `0` ok, `1` node missing, `2` packages missing, `3` parser file missing.
 4. **`parse_policy_v2.mjs`** — the parser. ESM, Node ≥ 18, deps = `adm-zip` (read docx archives) + `fast-xml-parser` (parse `word/document.xml`). Emits three JSON files (`<base>_only.json`, `<base>_associated_controls.json`, `<base>_complete_associations.json`) and an optional flat CSV. The target schema (per `skills/policy-parsing-v2/references/schema-cheatsheet.md`) uses the compact uppercase id family — `SECT-NN`, `STMT-NN`, `SUST-NN`, `COND-NN`, `ROLE-NN`, `RESP-NN`, `SCOP-NN`, `SLCT-N` — with full-ancestor `reference-id` on every non-top-level object, plus per-statement `scopes[]`, `assets{personnel,infrastructure,applications}`, and a top-level `assignment-selectors.by-section` index. The parser currently still emits legacy `pol*`-prefixed ids and is being migrated to the compact form; treat the cheatsheet as authoritative when the two disagree.
 

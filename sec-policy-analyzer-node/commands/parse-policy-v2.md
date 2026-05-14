@@ -26,8 +26,8 @@ Parse a single policy `.docx`. By default the wrapper writes outputs flat next t
 
 4. Spot-check the resulting `*_only.json`:
    - `policy-id`, `policy-id-source`, and `framework-tags` are sensible.
-   - `policy.policy-requirements` opens with `<policy-id>-SECT-01` … `<policy-id>-SECT-07`.
-   - At least one numbered section beyond `SECT-07` is present (when applicable).
+   - `policy.policy-requirements` opens with `<policy-id>-polcsec-1` … `<policy-id>-polcsec-7`. (The v2 parser still emits the legacy `pol*` id family; the v2 cheatsheet describes the target compact form that the v2 parser will adopt during migration, while `parse_policy_v3.mjs` emits `SECT-NN` today.)
+   - At least one numbered section beyond `polcsec-7` is present (when applicable).
    - `assignment-selectors.by-section` has entries when the docx contains `[organization-defined …]` placeholders or curated inline patterns.
 
 5. Report each output file path and the row count of the CSV (if `--csv` was passed or `default-csv: true`).

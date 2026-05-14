@@ -31,7 +31,7 @@ Outputs land alongside each input docx (`*_only.json`, `*_associated_controls.js
 
 | Plugin | Source | Description |
 |---|---|---|
-| `sec-policy-analyzer-node` | [`./sec-policy-analyzer-node`](./sec-policy-analyzer-node) | Node parser for policy `.docx` files. Produces v2 JSON with compact uppercase IDs (`SECT-NN`, `STMT-NN`, `SUST-NN`, `COND-NN`, `ROLE-NN`, `RESP-NN`, `SCOP-NN`, `SLCT-N`), per-statement `scopes[]` and `assets{personnel,infrastructure,applications}`, top-level `assignment-selectors.by-section` index, optional `--policy-map` compact-linkage mode, and CSV output. v3 transform adds framework-coded `policy-id`, condition `framework-tags`, and `legacy-reference-id` back-links. |
+| `sec-policy-analyzer-node` | [`./sec-policy-analyzer-node`](./sec-policy-analyzer-node) | Node parser for policy `.docx` files. **v3** (`/parse-policy-v3`, `parse_policy_v3.mjs`) emits the compact uppercase id family (`SECT-NN`, `STMT-NN`, `SUST-NN`, `COND-NN`, `ROLE-NN`, `RESP-NN`, `SCOP-NN`, `SLCT-N`), a framework-coded `policy-id` of shape `PLCY-NNN-<CODE>-RRR-VV[A]`, `framework-tags` on every policy-condition, and `legacy-reference-id` back-links to the v2 form. **v2** (`/parse-policy-v2`, `parse_policy_v2.mjs`) still emits the legacy `pol*` id family pending migration. Both shapes carry per-statement `scopes[]` + `assets{personnel,infrastructure,applications}`, a top-level `assignment-selectors.by-section` index, optional `--policy-map` compact-linkage mode, and CSV output. |
 
 ## Repository security
 

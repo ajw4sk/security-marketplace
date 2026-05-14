@@ -32,6 +32,8 @@ If the request involves the Python sibling (`parse_policy_v2.py`, the `sec-polic
 
 ## v2 Schema at a Glance
 
+> **Migration note.** `parse_policy_v2.mjs` currently still emits the legacy `pol*` id family (`polcsec-1`, `polstmt-1`, `polcond-1`, `polsubstmt-1`, `polrole-1`, `polresp-1`, `polscope-1`, `polasn-1`). The schema below describes the *target* shape — the compact uppercase id family used by the v3 parser and the schema cheatsheet. v2 parser code migration is tracked separately; until then, expect `pol*` ids in v2 output and treat the v3 parser (`/parse-policy-v3`) as the source of truth for the compact form.
+
 Every document carries `policy-id` + `framework-tags` at the top, every non-top-level object has both a local `*-id` and a `reference-id` (full ancestor chain). Per the schema cheatsheet, parser-generated id prefixes use the compact uppercase family: `SECT-NN` (section), `STMT-NN` (statement), `SUST-NN` (substatement), `COND-NN` (condition), `ROLE-NN` / `RESP-NN` (role / responsibility), `SCOP-NN` (scope), `SLCT-N` (assignment selector).
 
 | sect-id (suffix) | section-type |

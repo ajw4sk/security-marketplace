@@ -2,6 +2,10 @@
 
 One-page reference for the JSON produced by `scripts/parse_policy_v2.mjs`. Output is byte-for-byte identical to the Python sibling — see `policies/POLICY_PARSING_INSTRUCTIONS_V2.md` for the full spec.
 
+> **Migration note.** `parse_policy_v2.mjs` currently still emits the legacy `pol*` id family (`polcsec-1`, `polstmt-1`, `polcond-1`, `polsubstmt-1`, `polrole-1`, `polresp-1`, `polscope-1`, `polasn-1`). The id family shown throughout this cheatsheet (`SECT-NN`, `COND-NN`, `STMT-NN`, …) is the *target* shape: what the v2 parser will emit once aligned with v3, and what `parse_policy_v3.mjs` emits today. Until v2 parser migration lands, every `pol*` substring in actual v2 output maps 1:1 to its compact sibling shown here (`polcsec-7` ↔ `SECT-07`, `polstmt-1` ↔ `STMT-01`, etc.).
+
+For the v3 schema directly, see `../../policy-parsing-v3/references/schema-cheatsheet-v3.md`.
+
 ## Top-level shape (`*_only.json`)
 
 ```json
@@ -108,14 +112,20 @@ Every local id is short. Every non-top-level object also carries `reference-id` 
 
 ## Asset entry shape (created downstream)
 
-```json
+The parser emits `assets: { personnel: {}, infrastructure: {}, applications: {} }` (always empty objects) on every statement-shaped object. Downstream tooling populates them by adding entries keyed by `asset-id`. Per-asset entry shape:
+
+```jsonc
 {
-  "exception": "Yes" | "No",
+  "asset-id": "ASSET-…",
+  "exception": "Yes",                // "Yes" | "No"
   "asset-owner": "",
-  "asset-id": "",
-  "mappings": { "<downstream-component-id>": "<mapped-item-id>" },
-  "selectors": [ { <selector-id>: "value": 8 } ]
-  "Assignments": 
+  "mappings": {
+    "<downstream-component-id>": "<mapped-item-id>"
+  },
+  "selectors": [
+    { "selector-id": "SLCT-01", "value": 8 }
+  ],
+  "assignments": []                  // free-form, set by downstream
 }
 ```
 
@@ -157,22 +167,70 @@ Every local id is short. Every non-top-level object also carries `reference-id` 
 
 ## Inline selector replacement
 
-Within any statement / substatement / condition text:
+Within any statement / substatement / condition text, the parser replaces each detected selector phrase with a sequential placeholder `[xN]` (1-indexed per host object). The original phrase is recorded as a selector entry in `assignment-selectors.by-section`.
 
-Needs to be redone by looking at example
+Detection priority (lower number wins on overlap):
 
-### Curated inline patterns
+| Priority | Style | Pattern | Example |
+|---|---|---|---|
+| 0 | bracketed | `[…]` anywhere in the text | `[organization-defined frequency]` |
+| 1 | inline | spelled number with numeric (`one (1)`, `eight (8)`, …) | `eight (8)` |
+| 2 | inline | `a defined number` / `the defined number` | `a defined number` |
+| 3 | inline | `a defined period` / `the defined period of <unit>` | `a defined period of days` |
+| 4 | inline | `periodically` | `periodically` |
+| 5 | inline | `as applicable` | `as applicable` |
+| 6 | inline | `when(ever) possible` | `whenever possible` |
+| 7 | inline | `where appropriate` / `as appropriate` | `where appropriate` |
+| 8 | inline | `if necessary` | `if necessary` |
 
-Needs to be redone by looking at example
+Overlapping matches are resolved by lowest priority wins; ties break left-to-right. Bracketed selectors are always preferred over inline patterns covering the same span.
 
-## Assignments and selectors index
+### Selector record shape
 
-```json
+```jsonc
+{
+  "selector-id": "SLCT-01",
+  "reference-id": "<host-reference-id>-SLCT-01",
+  "legacy-reference-id": "<host-legacy-reference-id>-polasn-1",
+  "policy-id": "<policy-id>",
+  "policy-section-id": "SECT-NN",
+  "policy-statement-id": "STMT-NN",
+  "policy-substatement-id": "SUST-NN",   // null when the host is a statement
+  "policy-condition-id": "COND-NN",      // null when not inside a condition
+  "host-id": "STMT-NN",                  // statement or substatement local id
+  "host-reference-id": "<full chain ending at host>",
+  "placeholder": "[x1]",
+  "selector-style": "bracketed",         // or "inline"
+  "selector-type": "organization-defined-frequency", // slugified phrase for bracketed; spec key for inline
+  "selector": "organization-defined frequency",      // bracketed: literal phrase; inline: the spec's name
+  "matched-text": "[organization-defined frequency]",
+  "numeric-value": 8                     // only on inline numeric-value entries
+}
+```
 
+## Assignment-selectors index
 
-[NEEDS TO BE REDONE BY LOOKING AT example]
+Top-level `assignment-selectors.by-section` groups every selector record by the local `sect-id` of its enclosing section. Sections with no selectors are omitted.
 
-
+```jsonc
+{
+  "assignment-selectors": {
+    "by-section": {
+      "SECT-08": [
+        {
+          "selector-id": "SLCT-01",
+          "reference-id": "<policy-id>-SECT-08-STMT-01-SLCT-01",
+          "placeholder": "[x1]",
+          "host-reference-id": "<policy-id>-SECT-08-STMT-01",
+          "selector-style": "bracketed",
+          "selector-type": "organization-defined-frequency",
+          "selector": "organization-defined frequency"
+          /* …rest of the record per the shape above */
+        }
+      ]
+    }
+  }
+}
 ```
 
 Index keys are local sect-ids (`SECT-NN`), not full reference-ids.

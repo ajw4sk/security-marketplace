@@ -25,7 +25,7 @@ Run the policy → controls mapper against a parsed policy JSON.
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/run.sh" map-controls --policy "$POLICY" "$@"
    ```
 
-5. By default the wrapper writes `mapping.json` next to the policy and (if `--condensed-out` is given) a flat best-pick view. Show the user:
+5. When `--out` / `--condensed-out` aren't explicitly passed, the wrapper auto-routes both into `${parsing-output-dir}/controls/` (default `${CLAUDE_PROJECT_DIR}/parsing-output/controls/`), named `<policy-base>_mapping.json` and `<policy-base>_mapping_condensed.json` (where `<policy-base>` is the policy file's basename minus `.v3.json` / `.json`). Show the user:
    - `mappings-total`, `with-candidates`, `avg-top-score` from the summary block
    - 5–10 spot-check rows (section / kind / policy-ref / top control / score)
    - Path to the full + condensed output files
@@ -66,8 +66,8 @@ Run the policy → controls mapper against a parsed policy JSON.
   "controls": [ /* every catalog row, with related-procedure-ids */ ],
   "mappings": [
     {
-      "policy-ref-id": "nist-access-control-2026-s8-r6",
-      "policy-legacy-ref-id": "nist-access-control-2026-polcsec-8-polstmt-6",
+      "policy-ref-id": "PLCY-001-NI100-001-01-SECT-08-STMT-06",
+      "policy-legacy-ref-id": "PLCY-001-NI100-001-01-polcsec-8-polstmt-6",
       "section": { "section-number": "8.0", "section-title": "Account Management", "section-reference-id": "..." },
       "condition": null,
       "kind": "statement",

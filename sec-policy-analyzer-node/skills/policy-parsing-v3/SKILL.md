@@ -1,14 +1,16 @@
 ---
 name: policy-parsing-v3-node
-description: Use when the user asks to "emit v3 policy JSON", "transform to v3", "produce compact reference ids", "add framework-tags to conditions", or otherwise wants the v3 schema variant. v3 uses compact uppercase reference-ids (`SECT-NN`, `COND-NN`, `STMT-NN`, …), condition-level `framework-tags`, framework-coded `policy-id` (`PLCY-NNN-<CODE>-RRR-VV[A]`), and `legacy-reference-id` back-links for compatibility. Produced by `scripts/transform_to_v3.mjs` via `run.sh transform-v3`; feeds the policy-controls-mapping skill.
-version: 0.1.0
+description: Use when the user asks to "parse to v3", "emit v3 policy JSON", "produce compact reference ids", "add framework-tags to conditions", or otherwise wants the v3 schema variant. v3 uses compact uppercase reference-ids (`SECT-NN`, `COND-NN`, `STMT-NN`, …), condition-level `framework-tags`, framework-coded `policy-id` (`PLCY-NNN-<CODE>-RRR-VV[A]`), and `legacy-reference-id` back-links for compatibility. Primary producer: `scripts/parse_policy_v3.mjs` (direct `.docx` → v3) via `run.sh parse-v3` / `/parse-policy-v3`. Supplementary producer: `scripts/transform_to_v3.mjs` (additive v2 JSON → v3) via `run.sh transform-v3`. Feeds the policy-controls-mapping skill.
+version: 0.2.0
 ---
 
 # Policy Parsing v3 — Node
 
 ## Purpose
 
-The v3 schema is produced by `scripts/transform_to_v3.mjs` (driven by `run.sh transform-v3`) from a v2 parser output. v3 carries:
+The v3 schema is produced directly from a `.docx` by `scripts/parse_policy_v3.mjs` (driven by `run.sh parse-v3` / `/parse-policy-v3`). For pre-existing v2 outputs you want to upgrade in place, `scripts/transform_to_v3.mjs` (`run.sh transform-v3`) applies an additive rewrite — useful for backfilling but unnecessary on a fresh parse.
+
+v3 carries:
 
 - `schema-version: "v3"` at the top.
 - Compact uppercase reference-ids — every non-top-level object uses the id family in the table below.
@@ -31,25 +33,36 @@ Do **not** use for:
 - Parsing the source `.docx` — use `policy-parsing-v2-node` / `/parse-policy-v2` first to produce the v2 JSON.
 - Python-parser maintenance — that lives in the sibling repo.
 
-## Producer
+## Producer (primary): direct `.docx` → v3
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/run.sh" parse-v3 ./<policy>.docx [--csv] [--policy-map] [--framework <tags>] [--policy-id <PLCY-…>]
+```
+
+Direct node invocation (debug, no wrapper defaults):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/parse_policy_v3.mjs" \
+  --docx ./<policy>.docx \
+  --test-output-dir <dir> \
+  [--csv-output <path.csv>] \
+  [--policy-id PLCY-NNN-CODE-RRR-VV[A]] \
+  [--framework iso-27001,soc-2] \
+  [--policy-map] [--verbose]
+```
+
+The wrapper routes outputs into `${parsing-output-dir}/policy/` by default (alongside the optional CSV) and applies the CLI > env > `.local.md` > built-in resolution chain to every setting.
+
+## Producer (supplementary): v2 JSON → v3
+
+For pre-existing v2 outputs you want to upgrade in place:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/run.sh" transform-v3 \
   --policy-only ./<base>_only.json \
-  --complete    ./<base>_complete_associations.json \
-  --out-dir     .
-```
-
-Direct invocation (debug, no wrapper defaults):
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/transform_to_v3.mjs" \
-  --policy-only ./<base>_only.json \
-  [--complete ./<base>_complete_associations.json] \
+  [--complete   ./<base>_complete_associations.json] \
   [--out-dir <dir>]
 ```
-
-CLI flags:
 
 | Flag | Purpose |
 |---|---|
@@ -57,7 +70,7 @@ CLI flags:
 | `--complete` | Optional. Path to v2 `*_complete_associations.json`; if provided, a v3 sibling is emitted alongside. |
 | `--out-dir` | Output directory (defaults to the input file's directory). |
 
-The wrapper applies the same CLI > env > `.local.md` > built-in resolution chain as the v2 parser — add new defaults via that chain, not by reaching into `transform_to_v3.mjs` directly.
+Use this only when re-parsing the source `.docx` isn't an option; otherwise prefer the direct parser above.
 
 ## v3 ID family
 
@@ -130,7 +143,8 @@ Procedure recommendation shape (see `references/schema-cheatsheet-v3.md` for the
 
 ## Authoritative source files
 
-- **Producer:** `scripts/transform_to_v3.mjs`.
+- **Primary producer:** `scripts/parse_policy_v3.mjs` (direct `.docx` → v3).
+- **Supplementary producer:** `scripts/transform_to_v3.mjs` (v2 JSON → v3, additive).
 - **Coded registries (do not hardcode in the script):** `defaults/default-frameworks.json`, `defaults/default-categories.json`, `defaults/default-assets.json`.
 - **Shape contracts:** `templates/template-{policy,control,procedure,framework,category,evidence-task,asset-*}.json` — when adding a v3 field, update the matching template.
 - **Schema cheatsheet:** `references/schema-cheatsheet-v3.md`.
