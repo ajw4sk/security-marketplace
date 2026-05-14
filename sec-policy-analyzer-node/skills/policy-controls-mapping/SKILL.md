@@ -84,14 +84,14 @@ Run more than one variant when in doubt — they share the same output schema, s
 
 ```jsonc
 {
-  "policy-ref-id":        "nist-access-control-2026-s9-c4-r1",
+  "policy-ref-id":        "PLCY-014-NI100-001-01-SECT-09-COND-04-STMT-01",
   "policy-legacy-ref-id": "nist-access-control-2026-polcsec-9-polcond-4-polstmt-1",
   "section-number":       "9.0",
   "section-title":        "Access Enforcement",
-  "section-ref-id":       "nist-access-control-2026-s9",
-  "condition-id":         "polcond-4",
+  "section-ref-id":       "PLCY-014-NI100-001-01-SECT-09",
+  "condition-id":         "COND-04",
   "condition-title":      "Policy conditions for CMMC 2.0 and NIST 800-171",
-  "condition-ref-id":     "nist-access-control-2026-s9-c4",
+  "condition-ref-id":     "PLCY-014-NI100-001-01-SECT-09-COND-04",
   "framework-tags":       ["nist-800-171", "cmmc"],
   "kind":                 "condition-statement",
   "text":                 "Execute critical or sensitive system and organizational operations using dual authorization.",

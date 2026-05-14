@@ -1,12 +1,12 @@
-# v2 Policy JSON — Schema Cheat Sheet (Node plugin)
+# v3 Policy JSON — Schema Cheat Sheet (Node plugin)
 
-One-page reference for the JSON produced by `scripts/parse_policy_v2.mjs`. Output is byte-for-byte identical to the Python sibling — see `policies/POLICY_PARSING_INSTRUCTIONS_V2.md` for the full spec.
+One-page reference for v3 policy JSON used by the app workflow. v3 uses compact reference IDs, condition framework tags, and `legacy-reference-id` back-links for compatibility.
 
 ## Top-level shape (`*_only.json`)
 
 ```json
 {
-  "schema-version": "v2",
+  "schema-version": "v3",
   "policy-id": "PLCY-001-NI100-001-01",
   "policy-id-source": "filename",
   "framework-tags": ["nist-800-53"],
@@ -38,7 +38,7 @@ One-page reference for the JSON produced by `scripts/parse_policy_v2.mjs`. Outpu
 }
 ```
 
-## Default sections (always present, start with a number, typically two formats, NIST format and other formats)
+## Default sections (always present, start with a number, typically two formats, NIST format and other formats) for NIST 800-53 Policies
 
 | sect-id (suffix) | section-type |
 |---|---|
@@ -159,23 +159,227 @@ Every local id is short. Every non-top-level object also carries `reference-id` 
 
 Within any statement / substatement / condition text:
 
-Needs to be redone by looking at example
+- Spreadsheet/control text uses explicit bracketed terms such as `[Assignment: organization-defined ...]` and `[Selection (one or more): ...]`.
+- In the controls structure (`tmp/02_enddraft.json`, `tmp/00_consolidated.json`), those terms are represented as IDs and values under `assignments`, `selections`, and `parameters`.
+- Empty, unresolved values are stored as `null` in `value` fields (not empty string).
+- Parameter value binding is by parameter ID (for example `AC-01-00-C-1-TX-REQ-PRMT1`).
 
 ### Curated inline patterns
 
-Needs to be redone by looking at example
+Use spreadsheet terminology from control text and JSON:
+
+- Assignment term format in control text: `[Assignment: <text>]`
+- Selection term format in control text: `[Selection (one or more): <option A>; <option B>; ...]`
+- Assignment JSON object: `{ "id": "...ASMT...", "text": "...", "value": null }`
+- Selection JSON object: `{ "id": "...SLCT...", "options": "...", "value": null }`
+- Parameter JSON object: `{ "id": "...PRMT...", "value": <string|null> }`
 
 ## Assignments and selectors index
 
+Preferred naming in this cheat sheet: `control_structure`.
+
+Current source files still store this object under `json_blob`; treat `json_blob` and `control_structure` as the same object shape.
+
 ```json
-
-
-[NEEDS TO BE REDONE BY LOOKING AT example]
-
-
+{
+  "control_structure": {
+    "sortId": "AC-01-00",
+    "descriptions": [
+      {
+        "id": "AC-01-00-A",
+        "selections": [],
+        "assignments": [
+          {
+            "id": "AC-01-00-A-SY-PKS-ASMT1",
+            "text": "organization-defined personnel or roles",
+            "value": null
+          }
+        ],
+        "parameters": [
+          {
+            "id": "AC-01-00-A-SY-PKS-PRMT1",
+            "value": null
+          }
+        ],
+        "subDescriptions": [
+          {
+            "id": "AC-01-00-A-1",
+            "selections": [
+              {
+                "id": "AC-01-00-A-1-CTRL-SY-PKS-SLCT1",
+                "options": "Organization-level; Mission/business process-level; System-level",
+                "value": null
+              }
+            ],
+            "assignments": [],
+            "parameters": [
+              {
+                "id": "AC-01-00-A-1-SY-PKS-PRMT1",
+                "value": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "AC-01-00-C",
+        "selections": [],
+        "assignments": [],
+        "parameters": [],
+        "subDescriptions": [
+          {
+            "id": "AC-01-00-C-1",
+            "selections": [],
+            "assignments": [
+              {
+                "id": "AC-01-00-C-1-TX-REQ-ASMT1",
+                "text": "organization-defined frequency",
+                "value": null
+              },
+              {
+                "id": "AC-01-00-C-1-TX-REQ-ASMT2",
+                "text": "organization-defined events",
+                "value": null
+              }
+            ],
+            "parameters": [
+              {
+                "id": "AC-01-00-C-1-TX-REQ-PRMT1",
+                "value": "least every three (3) years"
+              },
+              {
+                "id": "AC-01-00-C-1-TX-REQ-PRMT2",
+                "value": "following significant changes"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
 ```
 
-Index keys are local sect-ids (`SECT-NN`), not full reference-ids.
+Flat row projection (generic tabular export) uses aligned arrays:
+
+- `selection_id` + `selection_statement`
+- `assignment_ids` + `assignment_descriptions`
+- `parameter_ids` + `parameter_descriptions`
+
+The linkage is positional within those arrays and by shared control/description lineage.
+
+Example:
+
+```json
+{
+  "description_id": "AC-01-00-C-1",
+  "selection_id": null,
+  "selection_statement": null,
+  "assignment_ids": [
+    "AC-01-00-C-1-TX-REQ-ASMT1",
+    "AC-01-00-C-1-TX-REQ-ASMT2"
+  ],
+  "assignment_descriptions": [
+    "organization-defined frequency",
+    "organization-defined events"
+  ],
+  "parameter_ids": [
+    "AC-01-00-C-1-TX-REQ-PRMT1",
+    "AC-01-00-C-1-TX-REQ-PRMT2"
+  ],
+  "parameter_descriptions": [
+    "least every three (3) years",
+    "following significant changes"
+  ]
+}
+```
+
+### ID segment legend
+
+For IDs such as `AC-01-00-A-SY-PKS-ASMT1` and `AC-01-00-C-1-TX-REQ-PRMT1`:
+
+- `SY-PKS` means Symplicity Picks (organization-picked values).
+- `XX-REQ` means framework requirement values, where `XX` is the framework prefix.
+- For TX-RAMP specifically, `XX-REQ` becomes `TX-REQ`.
+- Common suffixes: `ASMT` = assignment, `SLCT` = selection, `PRMT` = parameter.
+
+## Procedure recommendations (separate payload)
+
+Procedure recommendations are maintained as a separate payload (for example `tmp/04_procedures.json`) and linked into controls via `linked_procedure_ids` and `linked_procedures`.
+
+### Top-level shape
+
+```json
+{
+  "procedures": [
+    {
+      "procedure_id": "N8-AC-004-ACCT-004-PCDR",
+      "control_name": "Account Management",
+      "control_ids": "AC-2",
+      "sort_ids": "AC-02-01, AC-02-02, AC-02-03",
+      "procedure_name": "Procedures for addressing account management",
+      "external_control_id": null,
+      "evidence_tasks": null,
+      "tb_id": null,
+      "category_code": "ACCT",
+      "review_date": null,
+      "owner": null,
+      "reviewer": null,
+      "status": null,
+      "analyzer_id": null,
+      "sportal_id": null,
+      "pportal_id": null,
+      "jwork_id": null,
+      "_row": 5
+    }
+  ],
+  "category_code_library": {
+    "ACCT": "Account Management",
+    "AES": "Audit and Event Settings"
+  }
+}
+```
+
+### Control object fields for procedure linkage
+
+Add these fields to each control object to carry procedure recommendations:
+
+- `linked_procedure_ids`: array of `procedure_id` values.
+- `linked_procedures`: array of embedded procedure objects using the full recommendation field set.
+
+Example:
+
+```json
+{
+  "sort_id": "AC-02-05",
+  "control_name": "Account Management | Inactivity Logout",
+  "linked_procedure_ids": [
+    "N8-AC-004-ACCT-004-PCDR"
+  ],
+  "linked_procedures": [
+    {
+      "procedure_id": "N8-AC-004-ACCT-004-PCDR",
+      "control_name": "Account Management",
+      "control_ids": "AC-2",
+      "sort_ids": "AC-02-01, AC-02-02, AC-02-03, AC-02-04, AC-02-05",
+      "procedure_name": "Procedures for addressing account management",
+      "external_control_id": null,
+      "evidence_tasks": null,
+      "tb_id": null,
+      "category_code": "ACCT",
+      "review_date": null,
+      "owner": null,
+      "reviewer": null,
+      "status": null,
+      "analyzer_id": null,
+      "sportal_id": null,
+      "pportal_id": null,
+      "jwork_id": null,
+      "_row": 5
+    }
+  ]
+}
+```
 
 ## Lead-in lines (always dropped)
 
@@ -183,7 +387,7 @@ Index keys are local sect-ids (`SECT-NN`), not full reference-ids.
 
 ## `***` condition delimiters
 
-Lines that are exactly `***` (three or more asterisks) toggle in/out of a condition block. Adjacent `***\n***` closes one condition and opens the next. Inside an open block, the first `Policy conditions for X` line becomes the condition title.
+Lines that are exactly `***` (three or more asterisks) toggle in/out of a condition block. Adjacent `***\n***` closes one condition and opens the next. Inside an open block, the first `Policy conditions for X` line becomes the condition title where X is the framework(s).
 
 ## Framework codes (source of truth)
 
@@ -270,31 +474,21 @@ mapped-controls, evidence-tasks, security-portal-ids, privacy-portal-ids,
 jira-projects, jira-project-id, jira-components, related-policy-statement-ids
 ```
 
-`local-id` is the short id (e.g. `STMT-01`); `reference-id` is the full chain (unique row key). Multi-value cells are pipe-separated (`|`); `assignment-selectors` cells use `[xN]=phrase; [xM]=phrase`.
+`local-id` is the short id (e.g. `STMT-01`); `reference-id` is the full chain (unique row key). Multi-value cells are pipe-separated (`|`); assignment/selection parameter values should be represented by parameter IDs and values (for example `AC-01-00-C-1-TX-REQ-PRMT1=least every three (3) years; AC-01-00-C-1-TX-REQ-PRMT2=following significant changes`).
 
 ## CLI quick reference
 
 ```bash
-# Test mode (sandbox) + CSV
-node "${CLAUDE_PLUGIN_ROOT}/scripts/parse_policy_v2.mjs" \
+# v3-native parse workflow (no explicit v2 -> v3 transform step in this doc)
+# Use your app's v3 parser entrypoint and target v3 outputs directly.
+<app-v3-parser-command> \
   --docx <path>.docx \
-  --controls controls/controls.csv \
-  --test-output-dir <sandbox-dir> \
-  --csv-output <sandbox-dir>/<name>.csv
+  --schema-version v3 \
+  --output <out-dir>
 
-# With explicit policy-id, framework tags, compact linkage
-node "${CLAUDE_PLUGIN_ROOT}/scripts/parse_policy_v2.mjs" \
-  --docx ./isosoc_acces_control.docx \
-  --policy-id isosoc-access-control \
-  --framework iso-27001,soc-2 \
-  --policy-map \
-  --test-output-dir . \
-  --csv-output ./isosoc-access-control.csv
-
-# Production mode
-node "${CLAUDE_PLUGIN_ROOT}/scripts/parse_policy_v2.mjs" \
+# Optional CSV export for downstream edits
+<app-v3-parser-command> \
   --docx <path>.docx \
-  --yaml <path>.yaml \
-  --controls controls/controls.csv \
-  --output-dir policies/policy-docs-do-not-touch/json
+  --schema-version v3 \
+  --csv-output <out-dir>/<name>.csv
 ```

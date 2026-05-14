@@ -31,7 +31,7 @@ Outputs land alongside each input docx (`*_only.json`, `*_associated_controls.js
 
 | Plugin | Source | Description |
 |---|---|---|
-| `sec-policy-analyzer-node` | [`./sec-policy-analyzer-node`](./sec-policy-analyzer-node) | Node parser for policy `.docx` files. Produces v2 JSON with `pol*`-family IDs (`polcsec`, `polstmt`, `polsubstmt`, `polcond`, `polasn`, `polrole`, `polresp`, `polscope`), per-statement `scopes[]` and `assets{personnel,infrastructure,applications}`, top-level `assignment-selectors.by-section` index, optional `--policy-map` compact-linkage mode, and CSV output. |
+| `sec-policy-analyzer-node` | [`./sec-policy-analyzer-node`](./sec-policy-analyzer-node) | Node parser for policy `.docx` files. Produces v2 JSON with compact uppercase IDs (`SECT-NN`, `STMT-NN`, `SUST-NN`, `COND-NN`, `ROLE-NN`, `RESP-NN`, `SCOP-NN`, `SLCT-N`), per-statement `scopes[]` and `assets{personnel,infrastructure,applications}`, top-level `assignment-selectors.by-section` index, optional `--policy-map` compact-linkage mode, and CSV output. v3 transform adds framework-coded `policy-id`, condition `framework-tags`, and `legacy-reference-id` back-links. |
 
 ## Repository security
 

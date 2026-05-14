@@ -136,11 +136,15 @@ else
   echo "  Local config (optional): ${CONFIG_FILE}  — not present, all defaults in effect"
 fi
 
+echo
+bash "${SCRIPTS}/run.sh" scaffold || echo "  WARN: scaffold step failed (non-fatal)"
+
 cat <<EOF
 
 All good. Run the parser via the wrapper:
   bash "${SCRIPTS}/run.sh" parse <docx> [--csv] [--policy-map] [--framework iso-27001,soc-2]
   bash "${SCRIPTS}/run.sh" parse-all <dir> [--csv]
+  bash "${SCRIPTS}/run.sh" parse-v3 <docx>                  # direct v3 parse
 
 Or invoke node directly:
   ${NODE_BIN} "${PARSER}" --docx <path-to-docx> --test-output-dir <dir> --csv-output <path.csv> --verbose

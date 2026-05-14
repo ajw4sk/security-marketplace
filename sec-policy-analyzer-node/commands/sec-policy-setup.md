@@ -16,7 +16,9 @@ Run the plugin's environment doctor. The doctor:
 
 3. On success: writes the verified node path to `${CLAUDE_PLUGIN_ROOT}/scripts/.state/node-bin` so `run.sh`, `/parse-policy-v2`, and `/parse-all-policies` lock onto the same node.
 
-4. Reports whether a `.claude/sec-policy-analyzer-node.local.md` config file is present (does **not** modify it).
+4. Scaffolds the project's parsing workspace by invoking `run.sh scaffold`: creates `${CLAUDE_PROJECT_DIR}/parsing-output/{policy,controls,procedures,evidence-tasks,templates}` and copies the bundled JSON templates from `${CLAUDE_PLUGIN_ROOT}/templates/` into `parsing-output/templates/`. Idempotent — existing template files are left alone so customizations survive a re-run. Override the destination with `parsing-output-dir:` in `.local.md` or `SEC_POLICY_DEFAULT_PARSING_OUTPUT_DIR`.
+
+5. Reports whether a `.claude/sec-policy-analyzer-node.local.md` config file is present (does **not** modify it).
 
 ## Behavior
 
@@ -53,6 +55,7 @@ default-output-mode: test                              # SEC_POLICY_DEFAULT_OUTP
 default-test-output-dir: .                             # SEC_POLICY_DEFAULT_TEST_OUTPUT_DIR
 default-output-dir: ./policies/.../json                # SEC_POLICY_DEFAULT_OUTPUT_DIR
 default-policy-map: true                               # SEC_POLICY_DEFAULT_POLICY_MAP
+parsing-output-dir: ./parsing-output                   # SEC_POLICY_DEFAULT_PARSING_OUTPUT_DIR
 ---
 ```
 

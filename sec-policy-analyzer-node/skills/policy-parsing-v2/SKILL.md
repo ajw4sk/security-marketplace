@@ -32,19 +32,19 @@ If the request involves the Python sibling (`parse_policy_v2.py`, the `sec-polic
 
 ## v2 Schema at a Glance
 
-Identical to the Python sibling. Every document carries `policy-id` + `framework-tags` at the top, every non-top-level object has both a local `*-id` and a `reference-id` (full ancestor chain). All parser-generated id prefixes are in the `pol*` family (`polcsec`, `polstmt`, `polsubstmt`, `polcond`, `polasn`, `polrole`, `polresp`, `polscope`).
+Every document carries `policy-id` + `framework-tags` at the top, every non-top-level object has both a local `*-id` and a `reference-id` (full ancestor chain). Per the schema cheatsheet, parser-generated id prefixes use the compact uppercase family: `SECT-NN` (section), `STMT-NN` (statement), `SUST-NN` (substatement), `COND-NN` (condition), `ROLE-NN` / `RESP-NN` (role / responsibility), `SCOP-NN` (scope), `SLCT-N` (assignment selector).
 
 | sect-id (suffix) | section-type |
 |---|---|
-| polcsec-1 | `purpose` |
-| polcsec-2 | `scope` |
-| polcsec-3 | `roles-and-responsibilities` |
-| polcsec-4 | `management-commitment` |
-| polcsec-5 | `coordination-among-organizational-entities` |
-| polcsec-6 | `compliance` |
-| polcsec-7 | `policy-and-procedures` |
+| SECT-01 | `purpose` |
+| SECT-02 | `scope` |
+| SECT-03 | `roles-and-responsibilities` |
+| SECT-04 | `management-commitment` |
+| SECT-05 | `coordination-among-organizational-entities` |
+| SECT-06 | `compliance` |
+| SECT-07 | `policy-and-procedures` |
 
-Sections beyond 7 (`polcsec-8`+) carry `policy-statements` and optional `policy-conditions`. Conditions are detected from `***`-delimited blocks (the title line `Policy conditions for X` becomes the condition title) and from legacy unwrapped `Policy conditions for X` lines.
+Sections beyond 7 (`SECT-08`+) carry `policy-statements` and optional `policy-conditions`. Conditions are detected from `***`-delimited blocks (the title line `Policy conditions for X` becomes the condition title) and from legacy unwrapped `Policy conditions for X` lines.
 
 ### Per-Statement Fields (always present)
 
@@ -135,7 +135,7 @@ Same as the Python sibling. Default to a folder under `pipeline/test_data/parsin
 ## Validating the Output
 
 - `policy-id` present at top level; every section / statement / substatement / condition / selector `reference-id` begins with this prefix.
-- Sections `polcsec-1` through `polcsec-7` always present, in that order.
+- Sections `SECT-01` through `SECT-07` always present, in that order.
 - ID nesting: child reference-ids contain their parent reference-ids end-to-end.
 - Selector placeholders: every `[xN]` in a statement has a corresponding `assignment-selectors.by-section[<sect-id>]` entry whose `host-reference-id` matches the row.
 - Linkage fields: every statement-shaped object exposes the eight fields with empty defaults, OR (under `--policy-map`) a single `policy-map-id`.
