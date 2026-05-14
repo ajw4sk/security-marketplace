@@ -50,7 +50,7 @@ claude --plugin-dir /path/to/plugins/sec-policy-analyzer-node
 ```jsonc
 {
   "plugins": [
-    "/Users/wippmac/code/trust-portal/plugins/sec-policy-analyzer-node"
+    "/absolute/path/to/your/plugins/sec-policy-analyzer-node"
   ]
 }
 ```

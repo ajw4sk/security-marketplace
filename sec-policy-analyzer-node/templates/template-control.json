@@ -1,0 +1,24 @@
+{
+  "$template-note": "Control skeleton — matches the consolidated.json shape from the NIST extractor, with the requirements wrapper to be locked in section 9 of the schema walk. Placeholder until then.",
+  "sort_id": "AC-01-00",
+  "control_name": "",
+  "control_family": "",
+  "control_description": "",
+  "discussion": "",
+  "related_controls": "",
+  "requirements": {
+    "tx-ramp": {
+      "raw": "",
+      "parameters": []
+    },
+    "gdpr": { "raw": "", "parameters": [] },
+    "contractual": { "raw": "", "parameters": [] }
+  },
+  "json_blob": {
+    "sortId": "AC-01-00",
+    "descriptions": []
+  },
+  "descriptions": [],
+  "linked_procedure_ids": [],
+  "linked_procedures": []
+}

@@ -1,0 +1,10 @@
+{
+  "$template-note": "Single purchased / SaaS business application. Add to default-assets.json's assets.applications.business array.",
+  "asset-id": "APP-BUS-001",
+  "name": "",
+  "vendor": "",
+  "purpose": "",
+  "owner-team": "",
+  "data-classification": "public | internal | confidential | restricted",
+  "notes": ""
+}

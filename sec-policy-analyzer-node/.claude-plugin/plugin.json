@@ -1,14 +1,16 @@
 {
   "name": "sec-policy-analyzer-node",
   "displayName": "Sec Policy Analyzer (Node)",
-  "version": "0.2.0",
-  "description": "Parallel Node-based build of Sec Policy Analyzer. Parses security/compliance policy .docx files (NIST, ISO 27001, SOC 2, PCI DSS, etc.) into the v2 structured JSON schema with full-ancestor IDs, framework-aware policy-id, scopes/assets/linkage fields, an assignment-selectors index, and optional flat CSV. Uses Node.js + adm-zip + fast-xml-parser instead of Python. Works inside the Symplicity Trust Portal repo or in any directory containing only policy .docx files.",
+  "version": "0.4.0",
+  "description": "Parallel Node-based build of Sec Policy Analyzer. Parses security/compliance policy .docx files (NIST, ISO 27001, SOC 2, PCI DSS, etc.) into the v2 structured JSON schema with full-ancestor IDs, framework-aware policy-id, scopes/assets/linkage fields, an assignment-selectors index, and optional flat CSV. v0.3 adds an opt-in v3 schema variant (compact reference-ids + condition framework-tags) and a policy-to-controls mapping skill that crosswalks parsed statements to a controls catalog (NIST xlsx) and emits a top-pick mapping JSON with related procedure IDs. Uses Node.js + adm-zip + fast-xml-parser instead of Python. Works inside the Symplicity Trust Portal repo or in any directory containing only policy .docx files.",
   "author": {
     "name": "Symplicity Trust Portal"
   },
   "keywords": [
     "policy",
     "parsing",
+    "mapping",
+    "controls",
     "compliance",
     "security",
     "nist",
@@ -21,12 +23,16 @@
   ],
   "components": {
     "skills": [
-      "skills/policy-parsing-v2/SKILL.md"
+      "skills/policy-parsing-v2/SKILL.md",
+      "skills/policy-parsing-v3/SKILL.md",
+      "skills/policy-controls-mapping/SKILL.md"
     ],
     "commands": [
       "commands/parse-policy-v2.md",
+      "commands/parse-policy-v3.md",
       "commands/parse-all-policies.md",
-      "commands/sec-policy-setup.md"
+      "commands/sec-policy-setup.md",
+      "commands/map-policy-controls.md"
     ]
   }
 }

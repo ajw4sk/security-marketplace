@@ -16,7 +16,9 @@ Run the plugin's environment doctor. The doctor:
 
 3. On success: writes the verified node path to `${CLAUDE_PLUGIN_ROOT}/scripts/.state/node-bin` so `run.sh`, `/parse-policy-v2`, and `/parse-all-policies` lock onto the same node.
 
-4. Reports whether a `.claude/sec-policy-analyzer-node.local.md` config file is present (does **not** modify it).
+4. Scaffolds the project's parsing workspace by invoking `run.sh scaffold`: creates `${CLAUDE_PROJECT_DIR}/parsing-output/{policy,controls,procedures,evidence-tasks,templates}` and copies the bundled JSON templates from `${CLAUDE_PLUGIN_ROOT}/templates/` into `parsing-output/templates/`. Idempotent — existing template files are left alone so customizations survive a re-run. Override the destination with `parsing-output-dir:` in `.local.md` or `SEC_POLICY_DEFAULT_PARSING_OUTPUT_DIR`.
+
+5. Reports whether a `.claude/sec-policy-analyzer-node.local.md` config file is present (does **not** modify it).
 
 ## Behavior
 
@@ -37,6 +39,7 @@ If exit ≠ 0, **do not** install on the user's behalf:
 If exit = 0, confirm the plugin is ready and remind the user of:
 - `/parse-policy-v2 <docx> [--csv]` — single docx
 - `/parse-all-policies [<dir>] [--csv]` — bulk
+- `/map-policy-controls <policy.json>` — crosswalk a parsed policy to a controls catalog xlsx (NIST `Level 2` sheet)
 
 ## Optional: per-project config
 
@@ -45,12 +48,14 @@ Create `${CLAUDE_PROJECT_DIR}/.claude/sec-policy-analyzer-node.local.md` to set 
 ```markdown
 ---
 node-bin: /usr/local/bin/node                          # SEC_POLICY_NODE
-default-controls: ./controls/controls.csv              # SEC_POLICY_DEFAULT_CONTROLS
+default-controls: ./controls/controls.csv              # SEC_POLICY_DEFAULT_CONTROLS         (parser --controls CSV)
+default-controls-xlsx: ./NIST Controls and Procedures.xlsx  # SEC_POLICY_DEFAULT_CONTROLS_XLSX  (map-controls --controls xlsx)
 default-framework: iso-27001,soc-2                     # SEC_POLICY_DEFAULT_FRAMEWORK
 default-output-mode: test                              # SEC_POLICY_DEFAULT_OUTPUT_MODE  (test|production)
 default-test-output-dir: .                             # SEC_POLICY_DEFAULT_TEST_OUTPUT_DIR
 default-output-dir: ./policies/.../json                # SEC_POLICY_DEFAULT_OUTPUT_DIR
 default-policy-map: true                               # SEC_POLICY_DEFAULT_POLICY_MAP
+parsing-output-dir: ./parsing-output                   # SEC_POLICY_DEFAULT_PARSING_OUTPUT_DIR
 ---
 ```
 

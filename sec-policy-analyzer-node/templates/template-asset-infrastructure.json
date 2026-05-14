@@ -1,0 +1,9 @@
+{
+  "$template-note": "Single infrastructure asset. Add to default-assets.json's assets.infrastructure array.",
+  "asset-id": "INFRA-001",
+  "name": "Production VPC",
+  "type": "network | server | database | storage | endpoint | other",
+  "environment": "production | staging | development",
+  "owner": "",
+  "notes": ""
+}

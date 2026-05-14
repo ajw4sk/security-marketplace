@@ -1,0 +1,11 @@
+{
+  "$template-note": "One category entry. Add to default-categories.json's 'categories' object, keyed by category code (typically a 2-letter abbreviation).",
+  "code": "XX",
+  "tag": "category-slug",
+  "name": "Category Display Name",
+  "framework-codes": ["NI100"],
+  "mappings": {
+    "SO115": [],
+    "IS120": []
+  }
+}

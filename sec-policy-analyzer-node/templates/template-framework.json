@@ -1,0 +1,7 @@
+{
+  "$template-note": "One framework entry. Add to default-frameworks.json's 'frameworks' object, keyed by code.",
+  "code": "XX999",
+  "tag": "framework-slug",
+  "name": "Framework Display Name",
+  "edition": "Rev 1"
+}
